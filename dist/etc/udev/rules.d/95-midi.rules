@@ -1,0 +1,1 @@
+DEVPATH=="*/sound/card[0-9]/midi*", ACTION=="add", PROGRAM="/bin/bash -x /usr/local/bin/midi_connect.sh '%p' > /var/log/midibus.log"
