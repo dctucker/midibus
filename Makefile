@@ -9,5 +9,5 @@ dist:
 	cp /etc/udev/rules.d/95-midi.rules ./dist/etc/udev/rules.d/
 
 install:
-	echo
+	cp -R dist/{usr,etc} /
 

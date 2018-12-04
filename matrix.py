@@ -130,18 +130,20 @@ class View:
 		self.model = model
 
 	def input_left(self):
-		return len(self.model.inputs) * 2
+		return 1 + len(self.model.inputs) * 2
 
 	def output_top(self):
-		return len(self.model.inputs) + 1
+		return 1 + len(self.model.inputs)
 
 	def draw(self):
 		model = self.model
 		s = self.screen
-		y = 1
-		x = self.input_left()
+		y = 0
+		x = self.input_left() - 1
 		for i in model.inputs:
-			s.addstr(y, x, model.short_name(i))
+			s.move(y, x)
+			s.addch(curses.ACS_HLINE)
+			s.addstr(y, x + 1, model.short_name(i))
 			y += 1
 		max_y = y
 		y += len(model.outputs)
@@ -152,19 +154,19 @@ class View:
 			y -= 1
 			x += 2
 		
-		y = self.output_top()
+		y = self.output_top() - 1
 		for x in range(len(model.outputs)):
 			s.move(y, x * 2)
 			s.vline(curses.ACS_VLINE, len(model.outputs) - x)
 
 		for y in range(len(model.inputs)):
 			for x in range(len(model.outputs)):
-				s.move(y+1, x * 2)
+				s.move(y, x * 2)
 				s.addch(curses.ACS_PLUS)
 				s.addch(curses.ACS_HLINE)
 
 		for p1, p2 in model.connections:
-			y = 1 + model.get_index_in(p1)
+			y = model.get_index_in(p1)
 			x = model.get_index_out(p2) * 2
 			s.move(y,x)
 			s.addch(curses.ACS_DIAMOND)
@@ -172,10 +174,10 @@ class View:
 
 	def set_cursor(self, cursor):
 		s = self.screen
-		s.chgat( 1+cursor[0], self.input_left(), len( self.model.short_name( self.model.inputs[cursor[0]] ) ), curses.A_REVERSE )
-		s.chgat( len( self.model.outputs ) - cursor[1] + self.output_top(), 2*cursor[1], len( self.model.short_name( self.model.outputs[cursor[1]] ) ), curses.A_REVERSE )
+		s.chgat( cursor[0], self.input_left(), len( self.model.short_name( self.model.inputs[cursor[0]] ) ), curses.A_REVERSE )
+		s.chgat( len( self.model.outputs ) - cursor[1] + self.output_top() - 1, 2*cursor[1], len( self.model.short_name( self.model.outputs[cursor[1]] ) ), curses.A_REVERSE )
 		self.cursor = cursor
-		self.screen.move( 1+cursor[0], cursor[1] * 2 )
+		self.screen.move( cursor[0], cursor[1] * 2 )
 
 
 	

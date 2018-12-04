@@ -45,3 +45,6 @@ else
 	$aconnect "$bcr:0" "$name:0"
 	$aconnect "$name:0" "$bcr:0"
 fi
+
+pid=$(pgrep -f "python.*matrix.py")
+[ -n "$pid" ] && kill -s SIGHUP $pid
