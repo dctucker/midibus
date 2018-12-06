@@ -170,7 +170,7 @@ class View:
 			x = model.get_index_out(p2) * 2
 			s.move(y,x)
 			s.addch(curses.ACS_DIAMOND)
-			#s.addstr(y, x, "╆")
+			s.addstr(y, x, "◊")
 
 	def set_cursor(self, cursor):
 		s = self.screen
