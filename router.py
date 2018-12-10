@@ -2,13 +2,53 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import rtmidi
 import signal
 import locale
 locale.setlocale(locale.LC_ALL, '')
 import curses
 
+import devices
+
 #from matrix import View
+
+class Controller:
+	def __init__(self, model):
+		self.model = model
+		self.cursor = [0,0]
+
+	def reload(self):
+		self.model.load()
+		self.cursor = [0,0]
+
+	def move_cursor(self, direction):
+		new_i = self.cursor[0] + direction[0]
+		if 0 <= new_i and new_i < len(self.model.inputs):
+			self.cursor[0] = new_i
+		new_j = self.cursor[1] + direction[1]
+		if 0 <= new_j and new_j < len(self.model.outputs):
+			self.cursor[1] = new_j
+
+	def key_press(self, c):
+		if c in (ord('h'), curses.KEY_LEFT):
+			self.move_cursor((0, -1))
+		elif c in (ord('l'), curses.KEY_RIGHT):
+			self.move_cursor((0, 1))
+		elif c in (ord('k'), curses.KEY_UP):
+			self.move_cursor((-1, 0))
+		elif c in (ord('j'), curses.KEY_DOWN):
+			self.move_cursor((1, 0))
+		elif c in (ord('r'),):
+			self.reload()
+		elif c in (ord("\n"),):
+			i = self.model.inputs[ self.cursor[0] ]
+			o = self.model.outputs[ self.cursor[1] ]
+			self.model.connect(i,o)
+			self.model.load()
+		elif c in (ord("\b"),curses.KEY_BACKSPACE):
+			i = self.model.inputs[ self.cursor[0] ]
+			o = self.model.outputs[ self.cursor[1] ]
+			self.model.disconnect(i,o)
+			self.model.load()
 
 class View:
 	def __init__(self, screen, model):
@@ -30,14 +70,16 @@ class View:
 		for i in model.inputs:
 			s.move(y, x)
 			s.addch(curses.ACS_HLINE)
-			s.addstr(y, x + 1, i)
+			attr = curses.A_DIM if model.inputs[i] < 0 else curses.A_NORMAL
+			s.addstr(y, x + 1, i, attr)
 			y += 1
 		max_y = y
 		y += len(model.outputs)
 		#y = 1
 		x = 0
 		for o in model.outputs:
-			s.addstr(y, x, o)
+			attr = curses.A_DIM if model.outputs[o] < 0 else curses.A_NORMAL
+			s.addstr(y, x, o, attr)
 			y -= 1
 			x += 2
 		
@@ -52,87 +94,45 @@ class View:
 				s.addch(curses.ACS_PLUS)
 				s.addch(curses.ACS_HLINE)
 
-		for p1, p2 in model.connections:
-			y = model.get_index_in(p1)
-			x = model.get_index_out(p2) * 2
+		s.move(self.output_top() + len(model.outputs) + 1, 0)
+		s.clrtoeol();
+		for c in model.connections:
+			y = model.inputs.keys().index(c.input.name)
+			x = model.outputs.keys().index(c.output.name) * 2
 			s.move(y,x)
 			s.addch(curses.ACS_DIAMOND)
 			s.addstr(y, x, "◊")
+			if self.cursor == [y,x/2]:
+				s.addstr(self.output_top() + len(model.outputs) + 1, 0, str(c.filter))
+
 		s.move( self.output_top() + len(model.outputs) + 2, 0)
 
 	def set_cursor(self, cursor):
 		s = self.screen
-		s.chgat( cursor[0], self.input_left(), len( self.model.inputs[cursor[0]] ), curses.A_REVERSE )
-		s.chgat( len( self.model.outputs ) - cursor[1] + self.output_top() - 1, 2*cursor[1], len( self.model.outputs[cursor[1]] ), curses.A_REVERSE )
+		s.chgat( cursor[0], self.input_left(), len( self.model.inputs.keys()[cursor[0]] ), curses.A_REVERSE )
+		s.chgat( len( self.model.outputs ) - cursor[1] + self.output_top() - 1, 2*cursor[1], len( self.model.outputs.keys()[cursor[1]] ), curses.A_REVERSE )
 		self.cursor = cursor
 		self.screen.move( cursor[0], cursor[1] * 2 )
 
-
-class Devices:
-	_instance = None
-	def __init__(self):
-		self.open_inputs = {}
-		self.open_outputs = {}
-		self.connections = []
-		self.load()
-
-	@classmethod
-	def instance(cls):
-		if cls._instance is None:
-			cls._instance = cls()
-		return cls._instance
-
-	def load(self):
-		self.ins()
-		self.outs()
-
-	def ins(self):
-		self.inputs = {}
-		rt = rtmidi.RtMidiIn()
-		for i in range(rt.getPortCount()):
-			name = ' '.join(rt.getPortName(i).split(' ')[:-1])
-			self.inputs[ name ] = i
-
-	def input(self,name):
-		if name not in self.inputs:
-			raise Exception("Device '%s' not found" % name)
-		if name not in self.open_inputs:
-			rt = rtmidi.RtMidiIn()
-			rt.openPort( self.inputs[name] )
-			#rt.ignoreTypes(False, False, False)
-			self.open_inputs[name] = rt
-		return self.open_inputs[name]
-
-	def outs(self):
-		self.outputs = {}
-		rt = rtmidi.RtMidiOut()
-		for i in range(rt.getPortCount()):
-			name = ' '.join(rt.getPortName(i).split(' ')[:-1])
-			self.outputs[ name ] = i
-
-	def output(self, name):
-		if name not in self.outputs:
-			raise Exception("Device '%s' not found" % name)
-		if name not in self.open_outputs:
-			rt = rtmidi.RtMidiOut()
-			rt.openPort( self.outputs[name] )
-			self.open_outputs[name] = rt
-		return self.open_outputs[name]
-
-	def __del__(self):
-		for rt in self.open_outputs.values():
-			rt.closePort()
-		for rt in self.open_inputs.values():
-			rt.closePort()
 
 class DeviceListener:
 	channels = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
 	def __init__(self, name):
 		self.name = name
-		self.input = Devices.instance().input(self.name)
-		self.input.setCallback( self )
-		self.output = Devices.instance().output(self.name)
 		self.subs = []
+		self.callback = False
+		self.setup()
+
+	def setup(self):
+		if self.name in devices.inputs.keys() and self.name in devices.outputs.keys():
+			self.input = devices.input(self.name)
+			if not self.callback:
+				self.input.setCallback( self )
+				self.callback = True
+			self.output = devices.output(self.name)
+			self.listening = True
+		else:
+			self.listening = False
 
 	def __call__(self, message):
 		data = message.getRawData()
@@ -153,7 +153,7 @@ class DeviceListener:
 		self.output.sendMessage(message)
 
 	def send_unison(self, message, channel):
-		msg = rtmidi.MidiMessage(message)
+		msg = devices.MidiMessage(message)
 		msg.setChannel(channel)
 		self.output.sendMessage(msg)
 
@@ -168,7 +168,6 @@ class Connection:
 		self.filter = lambda x: True
 		
 	def connect(self):
-		devs = Devices.instance()
 		self.input.subscribe(self)
 
 	def __eq__(self, other):
@@ -178,6 +177,25 @@ class Router:
 	def __init__(self):
 		self.connections = []
 		self.listeners = {}
+		self.inputs = {}
+		self.outputs = {}
+		self.load()
+
+	def load(self):
+		devices.load()
+
+		self.inputs = {}
+		self.outputs = {}
+		for i in self.listeners:
+			self.inputs[i] = -1
+			self.outputs[i] = -1
+			self.listeners[i].setup()
+
+		self.inputs.update( devices.inputs )
+		self.outputs.update( devices.outputs )
+
+		for c in self.connections:
+			c.connect()
 
 	def connect(self, i, o, filt=lambda x: True):
 		if i not in self.listeners:
@@ -196,42 +214,49 @@ class Router:
 				self.connections.remove(connection)
 		self.connections.append(new_connection)
 
-def main(stdscr):
-	def channel_filter(channels):
-		return lambda x: x.getChannel() in channels
+class MidiLambda:
+	def __init__(self, body):
+		self.body = body
+		self.func = eval("lambda x: " + self.body)
+	def __call__(self, arg):
+		return self.func(arg)
+	def __str__(self):
+		return self.body
 
-	devices = Devices.instance()
-	devices.load()
+class ChannelFilter(MidiLambda):
+	def __init__(self, *channels):
+		self.func = lambda x: x.getChannel() in channels
+		self.body = "channel " + ",".join(map(str,channels))
+
+def main(stdscr):
 	router = Router()
-	router.connect("Deluge", "Little Phatty SE II", channel_filter((3,)))
-	router.connect("Deluge", "Circuit", channel_filter((0,1,2,10,)))
-	router.connect("Deluge", "JUNO-DS", channel_filter((4,5,6,7,9,11,)))
-	router.connect("JUNO-DS", "Circuit", channel_filter((1,2,10,)))
-	router.connect("JUNO-DS", "Deluge", channel_filter((8,)))
-	router.connect("JUNO-DS", "Little Phatty SE II", channel_filter((3,)))
-	router.connect("BCR2000", "Little Phatty SE II", channel_filter((3,)))
+	router.connect("Deluge", "Little Phatty SE II", ChannelFilter(3))
+	router.connect("Deluge", "Circuit", ChannelFilter(0,1,2,10))
+	router.connect("Deluge", "JUNO-DS", ChannelFilter(4,5,6,7,9,11))
+	router.connect("JUNO-DS", "Circuit", ChannelFilter(1,2,10))
+	router.connect("JUNO-DS", "Deluge", ChannelFilter(8))
+	router.connect("JUNO-DS", "Little Phatty SE II", ChannelFilter(3))
+	router.connect("BCR2000", "Little Phatty SE II", ChannelFilter(3))
+	router.load()
 
 	def hup(signum, frame):
-		devices.load()
+		router.load()
+		stdscr.clear()
 	signal.signal(signal.SIGHUP, hup)
 
-	#while True: #debug
-	#	message = device.getMessage(100)
-	#	call(message)
-
-	#ctrl = Controller(devices)
-	view = View(stdscr, devices)
+	ctrl = Controller(router)
+	view = View(stdscr, router)
 
 	while True:
 		view.draw()
-		#view.set_cursor(ctrl.cursor)
+		view.set_cursor(ctrl.cursor)
 		key = stdscr.getch()
 		if key == ord('q'):
 			break
 		elif key == ord('r'):
 			stdscr.clear()
-			
-		#ctrl.key_press(key)
+		ctrl.key_press(key)
 
 if __name__ == '__main__':
+	#main(None)
 	curses.wrapper(main)
