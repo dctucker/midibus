@@ -1,8 +1,9 @@
 
 CC=gcc
-LIBS=-lasound
+LIBS=-lasound -lpthread
+DEPS=thru.h
 
-thru: thru.c
+thru: thru.c ${DEPS}
 	${CC} -o $@ ${LIBS} thru.c
 
 rawmidi:
