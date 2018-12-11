@@ -10,9 +10,49 @@ static void error(const char *format, ...)
 	putc('\n', stderr);
 }
 
-void sig_handler(int sig)
+void manage_thread_outputs(struct read_thread_data *in)
 {
-	stop_all = 1;
+	if( in->midi == NULL )
+		return;
+	for( int o = 0; o < in->n_outs; ++o )
+	{
+		int err;
+		struct write_data *out = &in->outs[o];
+
+		if( out->midi != NULL ) continue;
+
+		// find named output in output_devices
+		int d = 0;
+		for(; d < n_output_devices; ++d )
+			if( strcmp( output_devices[d].port_name, out->port_name ) == 0 )
+				break;
+		// not found, must be new
+		if( d == n_output_devices )
+		{
+			output_devices[d].midi = NULL;
+			output_devices[d].port_name = out->port_name;
+			n_output_devices++;
+		}
+		// in list but not opened yet
+		if( output_devices[d].midi == NULL )
+		{
+			if( (err = snd_rawmidi_open(NULL, &out->midi, out->port_name, SND_RAWMIDI_NONBLOCK)) < 0 )
+			{
+				error("cannot open port \"%s\": %s", out->port_name, snd_strerror(err));
+				continue;
+			}
+		}
+		out->midi = output_devices[d].midi;
+		printf("Connected %s to %s\n", in->port_name, out->port_name);
+	}
+}
+
+void manage_outputs()
+{
+	for( int i = 0; i < n_read_threads; ++i )
+	{
+		manage_thread_outputs( &read_data[i] );
+	}
 }
 
 void *read_thread(void *arg)
@@ -25,6 +65,7 @@ void *read_thread(void *arg)
 		goto cleanup;
 	}
 	printf("Opened %s for read\n", data->port_name);
+	manage_thread_outputs( data );
 
 	snd_rawmidi_read(data->midi, NULL, 0); // trigger reading
 
@@ -88,47 +129,66 @@ int write_thru(snd_rawmidi_t *port, unsigned char *buf, int n_bytes)
 	snd_rawmidi_write( port, buf, n_bytes );
 }
 
-void manage_outputs()
+int write_none(snd_rawmidi_t *port, unsigned char *buf, int n_bytes)
 {
-	printf("Managing outputs\n");
-	for( int i = 0; i < MAX_THREADS; ++i )
-	{
-		struct read_thread_data *in = &read_data[i];
-		if( in->midi == NULL )
-			continue;
-		printf("Checking input %d\n", i);
-		for( int o = 0; o < in->n_outs; ++o )
-		{
-			int err;
-			struct write_data *out = &in->outs[o];
+	return 0;
+}
 
-			if( out->midi != NULL ) continue;
-			if ((err = snd_rawmidi_open(NULL, &out->midi, out->port_name, SND_RAWMIDI_NONBLOCK)) < 0) {
-				error("cannot open port \"%s\": %s", out->port_name, snd_strerror(err));
-				continue;
-			}
-			printf("Connected %s to %s\n", in->port_name, out->port_name);
+int (*write_func(const char *name))()
+{
+	if( strcmp(name, "thru") == 0);
+		return write_thru;
+	return write_none;
+}
+
+void configure(const char *connections[][3], size_t n_connections)
+{
+	for( int j = 0; j < n_connections; ++j )
+	{
+		int i = 0;
+		for(; i < n_read_threads; ++i )
+			if( strcmp( read_data[i].port_name, connections[j][0] ) == 0 )
+				break;
+
+		if( i == n_read_threads )
+		{
+			n_read_threads++;
+			read_data[i].port_name = connections[j][0];
 		}
+
+		int o = read_data[i].n_outs;
+		read_data[i].outs[o].midi      = NULL;
+		read_data[i].outs[o].port_name = connections[j][1];
+		read_data[i].outs[o].func      = write_func( connections[j][2] );
+		read_data[i].n_outs++;
 	}
+}
+
+void sighup_handler(int sig)
+{
+	manage_outputs();
+}
+
+void sigint_handler(int sig)
+{
+	stop_all = 1;
 }
 
 int main(int argc, char **argv)
 {
 	pthread_t threads[MAX_THREADS];
 
-	read_data[0].port_name = "hw:JUNODS";
-	read_data[0].outs[0].port_name = "hw:Deluge";
-	read_data[0].outs[0].midi = NULL;
-	read_data[0].outs[0].func = write_thru;
-	read_data[0].n_outs = 1;
+	const char *config[][3] = {
+		{"hw:JUNODS", "hw:Deluge", "thru"}
+	};
+	configure(config, 1);
 
 	int i = 0;
 
-	signal(SIGINT, sig_handler);
-	signal(SIGHUP, manage_outputs);
+	signal(SIGINT, sigint_handler);
+	signal(SIGHUP, sighup_handler);
 	pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[0] );
 	sleep(1);
-	manage_outputs();
 	pthread_join( threads[i], NULL);
 	return EXIT_SUCCESS;
 }
