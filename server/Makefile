@@ -1,21 +1,19 @@
 
+IDIR = ../include/server
+ODIR = obj
+
 CC=gcc
+CFLAGS=-I$(IDIR)
 LIBS=-lasound -lpthread
-SRCS=thru.c
 
-all: thru
+all: server
 
-depend: .depend
+DEPS = thru.h write.h main.h
+OBJ = thru.o write.o main.o
 
-.depend: $(SRCS)
-	rm -f ./.depend
-	$(CC) $(CFLAGS) -MM $^ > ./.depend;
+$(ODIR)/%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
-include .depend
-
-thru: thru.c thru.h
-	$(CC) -o $@ $(LIBS) thru.c
-
-rawmidi:
-	${CC} -o rawmidi -lasound rawmidi.c
+server: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
