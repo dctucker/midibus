@@ -6,5 +6,6 @@
 #include <pthread.h>
 #include <signal.h>
 
-extern int stop_all;
-
+pthread_t threads[MAX_THREADS];
+#define MAX_CONNECTIONS 64
+#define MAX_STRING 64

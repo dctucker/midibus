@@ -1,9 +1,7 @@
 #pragma once
 
 #include <alsa/asoundlib.h>
-
-#define MAX_THREADS 16
-#define MAX_OUTS 16
+#include "common.h"
 
 int stop_all;
 int n_read_threads;
@@ -14,6 +12,7 @@ struct write_data
 	snd_rawmidi_t *midi;
 	const char *port_name;
 	int (*func)();
+	void *args;
 };
 
 struct read_thread_data
@@ -31,3 +30,4 @@ struct output_device_t {
 
 void manage_thread_outputs(struct read_thread_data *in);
 void *read_thread(void *arg);
+void setup_midi_device(struct read_thread_data *);

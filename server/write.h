@@ -1,7 +1,8 @@
 #pragma once
 
 #include <alsa/asoundlib.h>
+#include <limits.h>
+#include "thru.h"
+#include "common.h"
 
-int write_thru(snd_rawmidi_t *port, unsigned char *buf, int n_bytes);
-int write_none(snd_rawmidi_t *port, unsigned char *buf, int n_bytes);
-int (*write_func(const char *name))();
+void setup_write_func( struct write_data *, char *, char *);
