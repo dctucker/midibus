@@ -8,7 +8,6 @@ void configure_connection(const char *in_name, const char *out_name, char *func_
 	for(; i < n_read_threads; ++i )
 		if( strcmp( read_data[i].port_name, in_name ) == 0 )
 			break;
-
 	if( i == n_read_threads )
 	{
 		n_read_threads++;
@@ -16,12 +15,18 @@ void configure_connection(const char *in_name, const char *out_name, char *func_
 		read_data[i].port_name = in_name;
 	}
 
-	int o = read_data[i].n_outs;
-	struct write_data *data = &read_data[i].outs[o];
-	data->midi      = NULL;
-	data->port_name = out_name;
-	setup_write_func( data, func_name, args );
-	read_data[i].n_outs++;
+	int o = 0;
+	for(; o < read_data[i].n_outs; ++o )
+		if( strcmp( read_data[i].outs[o].port_name, out_name ) == 0 )
+			break;
+	if( o == read_data[i].n_outs )
+	{
+		struct write_data *data = &read_data[i].outs[o];
+		data->midi      = NULL;
+		data->port_name = out_name;
+		setup_write_func( data, func_name, args );
+		read_data[i].n_outs++;
+	}
 }
 
 void manage_inputs()
@@ -31,8 +36,11 @@ void manage_inputs()
 	{
 		if( read_data[i].midi != NULL )
 			continue;
-		setup_midi_device( &read_data[i] );
-		pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+		if( setup_midi_device( &read_data[i] ) == 0 )
+		{
+			if( read_data[i].midi != NULL )
+				pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+		}
 	}
 }
 
@@ -44,6 +52,20 @@ void manage_outputs()
 	}
 }
 
+void load_config_file()
+{
+	const char in[MAX_CONNECTIONS][MAX_STRING], out[MAX_CONNECTIONS][MAX_STRING];
+	char func[MAX_STRING], args[MAX_STRING];
+	FILE *fp = fopen("midi-server.conf","r");
+	int n = 0;
+	while( fscanf( fp, "%s %s %s %s", &in[n], &out[n], &func, &args) != EOF)
+	{
+		configure_connection(in[n], out[n], func, args);
+		n++;
+	}
+	fclose(fp);
+}
+
 void sighup_handler(int sig)
 {
 	static int hanging_up = 0;
@@ -51,6 +73,7 @@ void sighup_handler(int sig)
 		return;
 	hanging_up = 1;
 	printf("Reloading\n");
+	load_config_file();
 	manage_inputs();
 	manage_outputs();
 	fflush(stdout);
@@ -66,16 +89,7 @@ int main(int argc, char **argv)
 {
 	stop_all = 0;
 
-	const char in[MAX_CONNECTIONS][MAX_STRING], out[MAX_CONNECTIONS][MAX_STRING];
-	char func[MAX_STRING], args[MAX_STRING];
-	FILE *fp = fopen("midi-server.conf","r");
-	int n = 0;
-	while( fscanf( fp, "%s %s %s %s", &in[n], &out[n], &func, &args) != EOF)
-	{
-		configure_connection(in[n], out[n], func, args);
-		n++;
-	}
-	fclose(fp);
+	load_config_file();
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGHUP, sighup_handler);

@@ -1,3 +1,4 @@
+# stretch# apt install libasound-dev
 
 IDIR = ../include/server
 ODIR = obj

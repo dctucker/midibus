@@ -30,4 +30,4 @@ struct output_device_t {
 
 void manage_thread_outputs(struct read_thread_data *in);
 void *read_thread(void *arg);
-void setup_midi_device(struct read_thread_data *);
+int setup_midi_device(struct read_thread_data *);

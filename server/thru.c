@@ -51,14 +51,15 @@ void manage_thread_outputs(struct read_thread_data *in)
 	}
 }
 
-void setup_midi_device(struct read_thread_data *data)
+int setup_midi_device(struct read_thread_data *data)
 {
 	int err;
 	snd_rawmidi_t *midi_out;
 
 	if ((err = snd_rawmidi_open(&data->midi, &midi_out, data->port_name, SND_RAWMIDI_APPEND | SND_RAWMIDI_NONBLOCK)) < 0) {
 		error("cannot open port \"%s\": %s", data->port_name, snd_strerror(err));
-		return;
+		data->midi = NULL;
+		return -1;
 	}
 	printf("Opened %s for read / write\n", data->port_name);
 	int d = 0;
@@ -72,6 +73,7 @@ void setup_midi_device(struct read_thread_data *data)
 	}
 	output_devices[d].midi = midi_out;
 	manage_thread_outputs( data );
+	return 0;
 }
 
 void *read_thread(void *arg)
@@ -113,17 +115,21 @@ void *read_thread(void *arg)
 			break;
 		}
 
+		printf("I ");
+		for (i = 0; i < err; ++i)
+			printf("%02X ", buf[i]);
+		printf("%s\n", data->port_name);
+
 		for( int o = 0; o < data->n_outs; ++o )
 		{
 			struct write_data *out = &data->outs[o];
 			if( out->midi == NULL || out->func == NULL )
 				continue;
-			out->func( out->midi, buf, err, out->args );
+			if( out->func( out->midi, buf, err, out->args ) )
+			{
+				printf("%s\n", out->port_name);
+			}
 		}
-
-		for (i = 0; i < err; ++i)
-			printf("%02X ", buf[i]);
-		printf("\n");
 		fflush(stdout);
 	}
 	while( ! stop_all );

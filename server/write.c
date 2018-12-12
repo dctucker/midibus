@@ -1,12 +1,23 @@
 #include "write.h"
 #include "thru.h"
 
+ssize_t write_buffer(snd_rawmidi_t *port, unsigned char *buf, size_t n_bytes)
+{
+	if( n_bytes == 0 )
+		return 0;
+	ssize_t ret = snd_rawmidi_write( port, buf, n_bytes );
+	printf("O ");
+	for (int b = 0; b < n_bytes; ++b)
+		printf("%02X ", buf[b]);
+	return n_bytes;
+}
+
 int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, void *args)
 {
 	unsigned char out_buf[BUFSIZE];
-	int a = 0;
 	unsigned int mask = (int) args;
 	unsigned int current_mask = 0;
+	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
 		if( buf[b] & 0x80 )
@@ -16,31 +27,21 @@ int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, v
 			else
 				current_mask = UINT_MAX;
 		}
-		else // data
-		{
-			if( mask & current_mask == 0 )
-				continue;
-		}
-		out_buf[a++] = buf[b];
+		if( mask & current_mask )
+			out_buf[a++] = buf[b];
 	}
-	snd_rawmidi_write( port, out_buf, a );
+	// printf("Filter %x returned %d  ", mask, a); // debug
+	return write_buffer( port, out_buf, a );
 }
 
 int write_thru(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, void *args)
 {
-	snd_rawmidi_write( port, buf, n_bytes );
+	return write_buffer( port, buf, n_bytes );
 }
 
 int write_none(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, void *args)
 {
 	return 0;
-}
-
-int (*write_func(const char *name))()
-{
-	if( strcmp(name, "thru") == 0);
-		return write_thru;
-	return write_none;
 }
 
 void setup_write_func( struct write_data *data, char *name, char *args )
@@ -63,10 +64,11 @@ void setup_write_func( struct write_data *data, char *name, char *args )
 			pt = strtok(NULL, ",");
 		}
 		data->args = (void *) channel_mask;
+		printf("Setup channel mask %X\n", channel_mask);
 	}
 	else
 	{
-		return;
+		data->func = write_none;
 	}
 	//printf("Setup write %s func %s args 0x%08x\n", data->port_name, name, data->args );
 }
