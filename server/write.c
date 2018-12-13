@@ -20,12 +20,13 @@ int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, v
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
-		if( buf[b] & 0x80 )
+		union midi_byte *byte = (void *) &buf[b];
+		if( byte->is_status )
 		{
-			if( buf[b] < 0xf0 )
-				current_mask = 2 << (buf[b] & 0x0f);
-			else
+			if( byte->status == SYSTEM )
 				current_mask = UINT_MAX;
+			else
+				current_mask = 2 << ( byte->channel );
 		}
 		if( mask & current_mask )
 			out_buf[a++] = buf[b];
