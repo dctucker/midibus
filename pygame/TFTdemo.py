@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 import pygame, time, os, logging
 
 os.putenv('SDL_VIDEODRIVER', 'fbcon')
@@ -119,6 +121,9 @@ Deluge	II	channel	3
 Deluge	Circuit	channel	1,2,10
 Deluge	JUNODS	channel	4,5,6,7,9,11
 Circuit	Deluge	channel	1,2,10
+A	B	C	D
+E	F	G	H
+I	J	K	L
 """
 	def __init__(s):
 		s.devices = []
@@ -138,17 +143,23 @@ Circuit	Deluge	channel	1,2,10
 
 class DeviceMatrix:
 	def __init__(s, config):
+		pygame.font.init()
+		s.font = pygame.font.SysFont('DejaVu Sans', 18)
+		s.small_font = pygame.font.SysFont('DejaVu Sans', 12)
+
+		s.load_config(config)
+
+	def load_config(s, config):
 		s.config = config
 		s.texts = []
-		pygame.font.init()
-		s.font = pygame.font.SysFont('Bitstream Vera Sans', 14)
 		for d in s.config.devices:
 			s.texts.append( s.font.render(d, True, (192,192,192)) )
 		for d in s.config.devices:
 			s.texts.append( pygame.transform.rotate( s.font.render(d, True, (192,192,192)), 90) )
-
 		s.connections = s.config.get_matrix()
-		s.cursor = [1,1]
+		s.cursor = [0,0]
+		s.oy = s.ox = 10
+		s.cy = s.cx = 200/len(s.config.devices)
 
 	def draw(s):
 		l = len(s.texts)
@@ -160,32 +171,37 @@ class DeviceMatrix:
 			screen.blit(s.texts[l/2+i], (s.get_x(i) - half, 3 + s.get_y(l/2)))
 		for i,o in s.connections:
 			pygame.draw.circle(screen, (192,192,128), [s.get_x(o), s.get_y(i)], 4, 0)
+		s.draw_info_panel()
 
+	def draw_info_panel(s):
 		conn = [x for x in s.config.connections if x[0] == s.config.devices[s.cursor[1]] and x[1] == s.config.devices[s.cursor[0]]]
-		pygame.draw.rect(screen, (8,0,32), [390, 190, 90, 130],0)
-		screen.blit(s.texts[s.cursor[1]], [400, 200])
-		screen.blit(s.texts[s.cursor[0]], [400, 220])
+		pygame.draw.rect(screen, (8,0,32), [370, 200, 210, 120],0)
+		screen.blit(s.small_font.render("In:" , True, (128,192,192)), [380,220])
+		screen.blit(s.small_font.render("Out:", True, (128,192,192)), [380,250])
+		screen.blit(s.texts[s.cursor[1]], [380, 230])
+		screen.blit(s.texts[s.cursor[0]], [380, 260])
 		if len(conn) == 1:
 			conn = conn[0]
-			screen.blit(s.font.render(conn[2], True, (128,192,192)), [400, 240])
-			screen.blit(s.font.render(conn[3], True, (128,192,192)), [400, 260])
+			screen.blit(s.small_font.render(conn[2], True, (128,192,192)), [380, 285])
+			screen.blit(s.small_font.render(conn[3], True, (128,192,192)), [380, 298])
 		pygame.mouse.set_pos([matrix.get_x(matrix.cursor[0]), matrix.get_y(matrix.cursor[1])])
+		pygame.mouse.set_cursor(*pygame.cursors.diamond)
 	
+	def get_x(s,o):
+		return s.ox + s.cx * o
+	def get_y(s,i):
+		return s.oy + s.cy * i
 	def set_cursor(s):
 		x,y = pygame.mouse.get_pos()
-		o = (x - 17) / 30
-		i = (y - 17) / 30
-		i = min(i, len(s.config.devices))
-		o = min(o, len(s.config.devices))
+		o = (x - s.ox + 0.5*s.cx) / s.cx
+		i = (y - s.oy + 0.5*s.cy) / s.cy
+		i = min(i, len(s.config.devices) - 1)
+		i = int(max(i, 0))
+		o = min(o, len(s.config.devices) - 1)
+		o = int(max(o, 0))
 		s.cursor = [o,i]
 		s.draw()
-		
-		
 
-	def get_x(s,o):
-		return 17 + 30 * o
-	def get_y(s,i):
-		return 17 + 30 * i
 
 screen.blit(bgimage, bgrect)
 #KeysScreen().draw()
