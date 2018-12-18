@@ -1,6 +1,9 @@
 #include "write.h"
 #include "thru.h"
 
+// Note Off could be sent as Note On Vel 0
+// Running status may need to be added when absent
+
 ssize_t write_buffer(snd_rawmidi_t *port, unsigned char *buf, size_t n_bytes)
 {
 	if( n_bytes == 0 )

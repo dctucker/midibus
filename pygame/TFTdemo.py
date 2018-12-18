@@ -121,9 +121,6 @@ Deluge	II	channel	3
 Deluge	Circuit	channel	1,2,10
 Deluge	JUNODS	channel	4,5,6,7,9,11
 Circuit	Deluge	channel	1,2,10
-A	B	C	D
-E	F	G	H
-I	J	K	L
 """
 	def __init__(s):
 		s.devices = []
@@ -135,6 +132,11 @@ I	J	K	L
 				s.devices.append(i)
 			if o not in s.devices:
 				s.devices.append(o)
+		s.connected = []
+		# TODO get which devices are present
+		s.connected.append(s.devices[0])
+		s.connected.append(s.devices[1])
+		s.connected.append(s.devices[3])
 	def get_matrix(s):
 		ret = []
 		for i,o,f,a in s.connections:
@@ -144,48 +146,71 @@ I	J	K	L
 class DeviceMatrix:
 	def __init__(s, config):
 		pygame.font.init()
-		s.font = pygame.font.SysFont('DejaVu Sans', 18)
-		s.small_font = pygame.font.SysFont('DejaVu Sans', 12)
 
 		s.load_config(config)
 
 	def load_config(s, config):
 		s.config = config
 		s.texts = []
-		for d in s.config.devices:
-			s.texts.append( s.font.render(d, True, (192,192,192)) )
-		for d in s.config.devices:
-			s.texts.append( pygame.transform.rotate( s.font.render(d, True, (192,192,192)), 90) )
 		s.connections = s.config.get_matrix()
 		s.cursor = [0,0]
-		s.oy = s.ox = 10
-		s.cy = s.cx = 200/len(s.config.devices)
+		nd = len(s.config.devices)
+		s.oy = s.ox = 25
+		s.cy = s.cx = 200/nd
+		font_size = 20 - max(0, min(8, (nd - 5)/2))
+		s.font = pygame.font.SysFont('DejaVu Sans', int(font_size))
+		s.small_font = pygame.font.SysFont('Inconsolata', 12)
+		s.small_font.set_bold(True)
+		for d in s.config.devices:
+			color = (192,192,128) if d in s.config.connected else (32,32,64)
+			s.texts.append( s.font.render(d, True, color) )
+		for d in s.config.devices:
+			color = (192,192,128) if d in s.config.connected else (32,32,64)
+			s.texts.append( pygame.transform.rotate( s.font.render(d, True, color), 90) )
 
 	def draw(s):
-		l = len(s.texts)
-		for i in range(l/2):
-			pygame.draw.line(screen, (128,128,96), [0, s.get_y(i)], [s.get_x(l/2), s.get_y(i)], 1)
-			pygame.draw.line(screen, (128,128,96), [s.get_x(i), 0], [s.get_x(i), s.get_y(l/2)], 1)
+		l = len(s.config.devices)
+		for i in range(l):
+			is_connected = s.config.devices[i] in s.config.connected
+			color = (128,128,96) if is_connected else (32,32,64)
+			pygame.draw.line(screen, color, [0, s.get_y(i)], [s.get_x(l-1) + s.ox, s.get_y(i)], 1)
+			pygame.draw.line(screen, color, [s.get_x(i), 0], [s.get_x(i), s.get_y(l-1) + s.oy], 1)
 			half = s.texts[i].get_height() / 2
-			screen.blit(s.texts[i],     (3 + s.get_x(l/2), s.get_y(i) - half))
-			screen.blit(s.texts[l/2+i], (s.get_x(i) - half, 3 + s.get_y(l/2)))
+			screen.blit(s.texts[i],     (s.ox + s.get_x(l-1), s.get_y(i) - half))
+			screen.blit(s.texts[l+i], (s.get_x(i) - half, s.oy + s.get_y(l-1)))
+			if is_connected:
+				s.draw_io_box('I', 0, s.get_y(i) - 6)
+				s.draw_io_box('O', s.get_x(i) - 6, 0)
 		for i,o in s.connections:
-			pygame.draw.circle(screen, (192,192,128), [s.get_x(o), s.get_y(i)], 4, 0)
+			is_connected = s.config.devices[i] in s.config.connected and s.config.devices[o] in s.config.connected
+			color = (192,192,96) if is_connected else (128,128,128)
+			pygame.draw.circle(screen, color, [s.get_x(o), s.get_y(i)], 5, 0 if is_connected else 1)
 		s.draw_info_panel()
 
 	def draw_info_panel(s):
+		ix = 370
+		screen.blit(bgimage, [ix, 200,210,120])
+
 		conn = [x for x in s.config.connections if x[0] == s.config.devices[s.cursor[1]] and x[1] == s.config.devices[s.cursor[0]]]
-		pygame.draw.rect(screen, (8,0,32), [370, 200, 210, 120],0)
-		screen.blit(s.small_font.render("In:" , True, (128,192,192)), [380,220])
-		screen.blit(s.small_font.render("Out:", True, (128,192,192)), [380,250])
-		screen.blit(s.texts[s.cursor[1]], [380, 230])
-		screen.blit(s.texts[s.cursor[0]], [380, 260])
 		if len(conn) == 1:
 			conn = conn[0]
-			screen.blit(s.small_font.render(conn[2], True, (128,192,192)), [380, 285])
-			screen.blit(s.small_font.render(conn[3], True, (128,192,192)), [380, 298])
+			screen.blit(s.small_font.render(conn[2], True, (128,192,192)), [ix+10, 285])
+			screen.blit(s.small_font.render(conn[3], True, (128,192,192)), [ix+10, 298])
+
+		screen.blit(s.texts[s.cursor[1]], [ix+10, 230])
+		screen.blit(s.texts[s.cursor[0]], [ix+10, 260])
+
+		s.draw_io_box('I', ix-5, 235)
+		s.draw_io_box('O', ix-5, 265)
+
 		pygame.mouse.set_pos([matrix.get_x(matrix.cursor[0]), matrix.get_y(matrix.cursor[1])])
 		pygame.mouse.set_cursor(*pygame.cursors.diamond)
+
+	def draw_io_box(s, ch, x, y): 
+		bg = (192,128,32)
+		fg = (0,0,0)
+		pygame.draw.rect(screen, bg, [x,y, 13,13], 0)
+		screen.blit(s.small_font.render(ch , True, fg), [x+3,y-1])
 	
 	def get_x(s,o):
 		return s.ox + s.cx * o
@@ -200,7 +225,7 @@ class DeviceMatrix:
 		o = min(o, len(s.config.devices) - 1)
 		o = int(max(o, 0))
 		s.cursor = [o,i]
-		s.draw()
+		s.draw_info_panel()
 
 
 screen.blit(bgimage, bgrect)
