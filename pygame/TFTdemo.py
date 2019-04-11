@@ -112,16 +112,8 @@ class KeysScreen:
 
 
 class Config:
-	config = """
-JUNODS	Deluge	channel	8
-JUNODS	Circuit	channel	1,2,10
-JUNODS	II	channel	3
-II	Deluge	channel	3
-Deluge	II	channel	3
-Deluge	Circuit	channel	1,2,10
-Deluge	JUNODS	channel	4,5,6,7,9,11
-Circuit	Deluge	channel	1,2,10
-"""
+	with open("../server/midi-server.conf", "r") as f:
+		config = f.read()
 	def __init__(s):
 		s.devices = []
 		s.connections = []
@@ -134,14 +126,16 @@ Circuit	Deluge	channel	1,2,10
 				s.devices.append(o)
 		s.connected = []
 		# TODO get which devices are present
-		s.connected.append(s.devices[0])
-		s.connected.append(s.devices[1])
-		s.connected.append(s.devices[3])
+		for device in s.devices:
+			s.connected.append(device)
 	def get_matrix(s):
 		ret = []
 		for i,o,f,a in s.connections:
 			ret.append((s.devices.index(i), s.devices.index(o)))
 		return ret
+
+def format_devname(d):
+	return d.replace("hw:","")
 
 class DeviceMatrix:
 	def __init__(s, config):
@@ -163,10 +157,10 @@ class DeviceMatrix:
 		s.small_font.set_bold(True)
 		for d in s.config.devices:
 			color = (192,192,128) if d in s.config.connected else (32,32,64)
-			s.texts.append( s.font.render(d, True, color) )
+			s.texts.append( s.font.render( format_devname(d), True, color) )
 		for d in s.config.devices:
 			color = (192,192,128) if d in s.config.connected else (32,32,64)
-			s.texts.append( pygame.transform.rotate( s.font.render(d, True, color), 90) )
+			s.texts.append( pygame.transform.rotate( s.font.render( format_devname(d), True, color), 90) )
 
 	def draw(s):
 		l = len(s.config.devices)
