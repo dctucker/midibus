@@ -19,7 +19,7 @@ int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, v
 {
 	unsigned char out_buf[BUFSIZE];
 	unsigned int mask = (int) args;
-	unsigned int current_mask = 0;
+	unsigned int current_mask = UINT_MAX;
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
