@@ -22,7 +22,7 @@ void configure_connection(const char *in_name, const char *out_name, char *func_
 	if( o == read_data[i].n_outs )
 	{
 		struct write_data *data = &read_data[i].outs[o];
-		data->midi      = NULL;
+		data->output_device = NULL;
 		data->port_name = out_name;
 		setup_write_func( data, func_name, args );
 		read_data[i].n_outs++;
@@ -36,11 +36,16 @@ void manage_inputs()
 	{
 		if( read_data[i].midi != NULL )
 			continue;
-		if( setup_midi_device( &read_data[i] ) == 0 )
+		if( strlen(read_data[i].port_name) <= 0 )
+			continue;
+		int result, tries = 0;
+		while( (result = setup_midi_device( &read_data[i] ) ) != 0 && tries < 5 )
 		{
-			if( read_data[i].midi != NULL )
-				pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+			tries++;
+			usleep(200*1000);
 		}
+		if( result == 0 && read_data[i].midi != NULL )
+			pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
 	}
 }
 
@@ -72,7 +77,9 @@ void sighup_handler(int sig)
 	if( hanging_up )
 		return;
 	hanging_up = 1;
+
 	printf("Reloading\n");
+	fflush(stdout);
 	load_config_file();
 	manage_inputs();
 	manage_outputs();

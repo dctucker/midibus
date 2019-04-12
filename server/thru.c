@@ -19,7 +19,7 @@ void manage_thread_outputs(struct read_thread_data *in)
 		int err;
 		struct write_data *out = &in->outs[o];
 
-		if( out->midi != NULL )
+		if( out->output_device != NULL )
 			continue;
 
 		// find named output in output_devices
@@ -30,7 +30,9 @@ void manage_thread_outputs(struct read_thread_data *in)
 			{
 				if( output_devices[d].midi != NULL )
 				{
-					out->midi = output_devices[d].midi;
+					output_devices[d].midi_in_exclusive = NULL;
+					out->midi_in = in->midi;
+					out->output_device = &output_devices[d];
 					printf("Connected %s to %s\n", in->port_name, out->port_name);
 				}
 				break;
@@ -123,9 +125,13 @@ void *read_thread(void *arg)
 		for( int o = 0; o < data->n_outs; ++o )
 		{
 			struct write_data *out = &data->outs[o];
-			if( out->midi == NULL || out->func == NULL )
+			if( out->output_device == NULL || out->output_device->midi == NULL || out->func == NULL )
 				continue;
-			if( out->func( out->midi, buf, err, out->args ) )
+			if( out->output_device->midi_in_exclusive == data )
+			{
+				write_thru( out, buf, err, out->args );
+			}
+			else if( out->func( out, buf, err, out->args ) )
 			{
 				printf("%s\n", out->port_name);
 			}

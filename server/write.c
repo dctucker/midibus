@@ -15,8 +15,9 @@ ssize_t write_buffer(snd_rawmidi_t *port, unsigned char *buf, size_t n_bytes)
 	return n_bytes;
 }
 
-int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, void *args)
+int write_channel_filter(struct write_data *data, unsigned char *buf, int n_bytes, void *args)
 {
+	snd_rawmidi_t *port = data->output_device->midi;
 	unsigned char out_buf[BUFSIZE];
 	unsigned int mask = (int) args;
 	unsigned int current_mask = UINT_MAX;
@@ -27,6 +28,10 @@ int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, v
 		{
 			if( buf[b] < 0xf0 )
 				current_mask = 2 << (buf[b] & 0x0f);
+			else if( buf[b] == 0xf0 )
+				data->output_device->midi_in_exclusive = data->midi_in;
+			else if( buf[b] == 0xf7 )
+				data->output_device->midi_in_exclusive = NULL;
 			else
 				current_mask = UINT_MAX;
 		}
@@ -37,12 +42,12 @@ int write_channel_filter(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, v
 	return write_buffer( port, out_buf, a );
 }
 
-int write_thru(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, void *args)
+int write_thru(struct write_data *data, unsigned char *buf, int n_bytes, void *args)
 {
-	return write_buffer( port, buf, n_bytes );
+	return write_buffer( data->output_device->midi, buf, n_bytes );
 }
 
-int write_none(snd_rawmidi_t *port, unsigned char *buf, int n_bytes, void *args)
+int write_none(struct write_data *data, unsigned char *buf, int n_bytes, void *args)
 {
 	return 0;
 }
