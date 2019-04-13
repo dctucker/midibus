@@ -8,4 +8,4 @@
 
 pthread_t threads[MAX_THREADS];
 #define MAX_CONNECTIONS 64
-#define MAX_STRING 64
+#define MAX_STRING 256

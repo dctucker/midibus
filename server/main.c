@@ -4,6 +4,7 @@
 
 void configure_connection(const char *in_name, const char *out_name, char *func_name, char *args)
 {
+	printf("%s %s %s %s\n", in_name, out_name, func_name, args);
 	int i = 0;
 	for(; i < n_read_threads; ++i )
 		if( strcmp( read_data[i].port_name, in_name ) == 0 )
