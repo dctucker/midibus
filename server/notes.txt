@@ -1,0 +1,7 @@
+JUNO-DS switching to Performance mode, USER 01
+
+BF 00 55 BF 20 00 CF 00
+
+Ch16 CC 0  BANK MSB = 85
+Ch16 CC 32 BANK LSB = 0
+Ch16 PC = 00

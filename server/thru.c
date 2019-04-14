@@ -127,14 +127,13 @@ void *read_thread(void *arg)
 			struct write_data *out = &data->outs[o];
 			if( out->output_device == NULL || out->output_device->midi == NULL || out->func == NULL )
 				continue;
-			if( out->output_device->midi_in_exclusive == data )
-			{
-				write_thru( out, buf, err, out->args );
-			}
-			else if( out->func( out, buf, err, out->args ) )
-			{
+			snd_rawmidi_t *excl = out->output_device->midi_in_exclusive;
+
+			if( excl != NULL && excl != data->midi )
+				continue;
+
+			if( out->func( out, buf, err, out->args ) )
 				printf("%s\n", out->port_name);
-			}
 		}
 		fflush(stdout);
 	}

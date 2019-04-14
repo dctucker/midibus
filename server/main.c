@@ -32,22 +32,31 @@ void configure_connection(const char *in_name, const char *out_name, char *func_
 
 void manage_inputs()
 {
-	int i = 0;
-	for(; i < n_read_threads; ++i )
+	int tries = 0;
+	int had_errors;
+	do
 	{
-		if( read_data[i].midi != NULL )
-			continue;
-		if( strlen(read_data[i].port_name) <= 0 )
-			continue;
-		int result, tries = 0;
-		while( (result = setup_midi_device( &read_data[i] ) ) != 0 && tries < 5 )
+		had_errors = 0;
+		int i = 0;
+		for(; i < n_read_threads; ++i )
 		{
-			tries++;
-			usleep(200*1000);
+			if( read_data[i].midi != NULL )
+				continue;
+			if( strlen(read_data[i].port_name) <= 0 )
+				continue;
+			int result;
+			result = setup_midi_device( &read_data[i] );
+			if( result == 0 && read_data[i].midi != NULL )
+				pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+			else
+				had_errors++;
 		}
-		if( result == 0 && read_data[i].midi != NULL )
-			pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+
+		if( had_errors )
+			usleep(400*1000);
+		tries++;
 	}
+	while( had_errors && tries < 5 );
 }
 
 void manage_outputs()

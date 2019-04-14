@@ -106,7 +106,7 @@ void setup_write_func( struct write_data *data, char *name, char *args )
 				else if( strcmp(pt, "rt") == 0 )
 					channel_mask |= MASK_RT;
 				else if( strcmp(pt, "all") == 0 )
-					channel_mask |= MASK_ALL_CHANNELS;
+					channel_mask |= MASK_ALL;
 			}
 			else
 				channel_mask |= 1 << a;

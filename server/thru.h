@@ -19,7 +19,7 @@ struct output_device_t {
 struct write_data
 {
 	struct output_device_t *output_device;
-	struct snd_rawmidi_t *midi_in;
+	snd_rawmidi_t *midi_in;
 	const char *port_name;
 	int (*func)();
 	void *args;
