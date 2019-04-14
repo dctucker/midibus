@@ -1,0 +1,25 @@
+[Unit]
+Description=MIDI Bus Pygame app
+Wants=network-online.target
+#Wants=sound.target
+After=sound.target
+
+[Service]
+Restart=no
+ExecStartPre=/bin/chvt 7
+ExecStartPre=/usr/bin/clear
+ExecStart=/home/pi/Development/midibus/pygame/TFTdemo.py
+ExecStop=/bin/sh -c '/bin/kill -s SIGINT $MAINPID 2>/dev/null'
+ExecStopPost=/bin/chvt 1
+ExecStopPost=/bin/sh -c '/bin/journalctl -o cat -n 30 -u midibus --no-pager > /dev/tty1'
+OOMScoreAdjust=-100
+TimeoutStopSec=10s
+User=pi
+WorkingDirectory=/home/pi/Development/midibus/pygame
+StandardInput=tty
+StandardOutput=syslog
+StandardError=syslog
+TTYPath=/dev/tty7
+
+[Install]
+WantedBy=multi-user.target

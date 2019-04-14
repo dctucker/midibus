@@ -1,0 +1,20 @@
+[Unit]
+Description=MIDI Server
+Wants=network-online.target
+#Wants=sound.target
+After=sound.target
+
+[Service]
+Restart=no
+ExecStart=/home/pi/Development/midibus/server/midi-server
+ExecStop=/bin/sh -c '/bin/kill -s SIGINT $MAINPID 2>/dev/null'
+#OOMScoreAdjust=-100
+TimeoutStopSec=10s
+User=pi
+WorkingDirectory=/home/pi/Development/midibus/server
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
+
