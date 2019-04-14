@@ -1,6 +1,10 @@
 #include "write.h"
 #include "thru.h"
 
+#define MASK_SYSEX (1 << 20)
+#define MASK_RT    (1 << 21)
+#define MASK_ALL   (0x1fffe)
+
 // Note Off could be sent as Note On Vel 0
 // Running status may need to be added when absent
 
@@ -26,42 +30,18 @@ int write_channel_filter(struct write_data *data, unsigned char *buf, int n_byte
 	{
 		if( buf[b] & 0x80 )
 		{
-			if( buf[b] == 0xf0 )
-				data->output_device->midi_in_exclusive = data->midi_in;
-			else if( buf[b] == 0xf7 )
-				data->output_device->midi_in_exclusive = NULL;
-
 			if( buf[b] < 0xf0 )
 				current_mask = 2 << (buf[b] & 0x0f);
 			else if( buf[b] < 0xf8 )
-				current_mask = UINT_MAX;
-		}
-		if( mask & current_mask )
-			out_buf[a++] = buf[b];
-	}
-	return write_buffer( port, out_buf, a );
-}
-
-int write_channel_rt_filter(struct write_data *data, unsigned char *buf, int n_bytes, void *args)
-{
-	snd_rawmidi_t *port = data->output_device->midi;
-	unsigned char out_buf[BUFSIZE];
-	unsigned int mask = (int) args;
-	unsigned int current_mask = UINT_MAX;
-	int a = 0;
-	for( int b = 0; b < n_bytes; ++b )
-	{
-		if( buf[b] & 0x80 )
-		{
-			if( buf[b] == 0xf0 )
-				data->output_device->midi_in_exclusive = data->midi_in;
-			else if( buf[b] == 0xf7 )
-				data->output_device->midi_in_exclusive = NULL;
-
-			if( buf[b] < 0xf0 )
-				current_mask = 2 << (buf[b] & 0x0f);
+			{
+				if( buf[b] == 0xf0 )
+					data->output_device->midi_in_exclusive = data->midi_in;
+				else if( buf[b] == 0xf7 )
+					data->output_device->midi_in_exclusive = NULL;
+				current_mask = MASK_SYSEX;
+			}
 			else
-				current_mask = UINT_MAX;
+				current_mask = MASK_RT;
 		}
 		if( mask & current_mask )
 			out_buf[a++] = buf[b];
@@ -121,15 +101,16 @@ void setup_write_func( struct write_data *data, char *name, char *args )
 			int a = atoi(pt);
 			if( a <= 0 )
 			{
-				if( strcmp(pt, "rt") == 0 )
-				{
-					data->func = write_channel_rt_filter;
-				}
+				if( strcmp(pt, "sysex") == 0 )
+					channel_mask |= MASK_SYSEX;
+				else if( strcmp(pt, "rt") == 0 )
+					channel_mask |= MASK_RT;
+				else if( strcmp(pt, "all") == 0 )
+					channel_mask |= MASK_ALL_CHANNELS;
 			}
 			else
-			{
 				channel_mask |= 1 << a;
-			}
+
 			pt = strtok(NULL, ",");
 		}
 		data->args = (void *) channel_mask;
