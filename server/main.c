@@ -1,8 +1,9 @@
+#include "socket.h"
 #include "write.h"
 #include "thru.h"
 #include "main.h"
 
-void configure_connection(const char *in_name, const char *out_name, char *func_name, char *args)
+void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args)
 {
 	printf("%s %s %s %s\n", in_name, out_name, func_name, args);
 	int i = 0;
@@ -25,7 +26,9 @@ void configure_connection(const char *in_name, const char *out_name, char *func_
 		struct write_data *data = &read_data[i].outs[o];
 		data->output_device = NULL;
 		data->port_name = out_name;
-		setup_write_func( data, func_name, args );
+		data->func_name = func_name;
+		data->args_name = args;
+		setup_write_func( data );
 		read_data[i].n_outs++;
 	}
 }
@@ -70,12 +73,12 @@ void manage_outputs()
 void load_config_file()
 {
 	const char in[MAX_CONNECTIONS][MAX_STRING], out[MAX_CONNECTIONS][MAX_STRING];
-	char func[MAX_STRING], args[MAX_STRING];
+	const char func[MAX_CONNECTIONS][MAX_STRING], args[MAX_CONNECTIONS][MAX_STRING];
 	FILE *fp = fopen("midi-server.conf","r");
 	int n = 0;
-	while( fscanf( fp, "%s %s %s %s", &in[n], &out[n], &func, &args) != EOF)
+	while( fscanf( fp, "%s %s %s %s", &in[n], &out[n], &func[n], &args[n]) != EOF)
 	{
-		configure_connection(in[n], out[n], func, args);
+		configure_connection(in[n], out[n], func[n], args[n]);
 		n++;
 	}
 	fclose(fp);
@@ -113,6 +116,7 @@ int main(int argc, char **argv)
 
 	manage_inputs();
 	manage_outputs();
+	setup_socket();
 
 	do // idle
 		sleep(1);

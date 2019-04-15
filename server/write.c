@@ -77,26 +77,27 @@ int write_none(struct write_data *data, unsigned char *buf, int n_bytes, void *a
 	return 0;
 }
 
-void setup_write_func( struct write_data *data, char *name, char *args )
+void setup_write_func( struct write_data *data )
 {
-	if( strcmp(name, "thru") == 0 )
+	if( strcmp(data->func_name, "thru") == 0 )
 	{
 		data->func = write_thru;
-		printf("Thru\n", args);
+		printf("Thru\n", data->args_name);
 	}
-	else if( strcmp(name, "realtime") == 0 )
+	else if( strcmp(data->func_name, "realtime") == 0 )
 	{
 		data->func = write_realtime;
-		data->args = (void *) args;
-		printf("Setup realtime %s\n", args);
+		data->args = (void *) data->args_name;
+		printf("Setup realtime %s\n", data->args_name);
 	}
-	else if( strcmp(name, "channel") == 0 )
+	else if( strcmp(data->func_name, "channel") == 0 )
 	{
 		data->func = write_channel_filter;
 
 		unsigned int channel_mask = 0;
+		char* copy = strdup(data->args_name);
 		char *pt;
-		pt = strtok(args, ",");
+		pt = strtok(copy, ",");
 		while (pt != NULL)
 		{
 			int a = atoi(pt);
@@ -116,6 +117,7 @@ void setup_write_func( struct write_data *data, char *name, char *args )
 		}
 		data->args = (void *) channel_mask;
 		printf("Setup channel mask %X\n", channel_mask);
+		free(copy);
 	}
 	else
 	{

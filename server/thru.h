@@ -3,7 +3,6 @@
 #include <alsa/asoundlib.h>
 #include "common.h"
 
-int stop_all;
 int n_read_threads;
 int n_output_devices;
 
@@ -21,6 +20,8 @@ struct write_data
 	struct output_device_t *output_device;
 	snd_rawmidi_t *midi_in;
 	const char *port_name;
+	const char *func_name;
+	const char *args_name;
 	int (*func)();
 	void *args;
 };
