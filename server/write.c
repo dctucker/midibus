@@ -25,24 +25,25 @@ int write_channel_filter(struct write_data *data, unsigned char *buf, int n_byte
 	unsigned char out_buf[BUFSIZE];
 	unsigned int mask = (int) args;
 	unsigned int current_mask = 0;
+	if( data->output_device->midi_in_exclusive == data->midi_in )
+		current_mask = MASK_SYSEX;
+
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
-		if( buf[b] & 0x80 )
+		if( buf[b] >= 0xf8 )
+			current_mask = MASK_RT;
+		else if( buf[b] >= 0xf0 )
 		{
-			if( buf[b] < 0xf0 )
-				current_mask = 2 << (buf[b] & 0x0f);
-			else if( buf[b] < 0xf8 )
-			{
-				if( buf[b] == 0xf0 )
-					data->output_device->midi_in_exclusive = data->midi_in;
-				else if( buf[b] == 0xf7 )
-					data->output_device->midi_in_exclusive = NULL;
-				current_mask = MASK_SYSEX;
-			}
-			else
-				current_mask = MASK_RT;
+			if( buf[b] == 0xf0 )
+				data->output_device->midi_in_exclusive = data->midi_in;
+			else if( buf[b] == 0xf7 )
+				data->output_device->midi_in_exclusive = NULL;
+			current_mask = MASK_SYSEX;
 		}
+		else if( buf[b] >= 0x80 )
+			current_mask = 2 << (buf[b] & 0x0f);
+
 		if( mask & current_mask )
 			out_buf[a++] = buf[b];
 	}
