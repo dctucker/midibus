@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import pygame, time, os, logging
+from client import Client
 
 os.putenv('SDL_VIDEODRIVER', 'fbcon')
 os.putenv('SDL_FBDEV', '/dev/fb0')
@@ -110,14 +111,13 @@ class KeysScreen:
 		for y in range(8):
 			pygame.draw.line(screen, (0,0,0), [0, y * 40], [480, y * 40], 1)
 
-
 class Config:
-	with open("../server/midi-server.conf", "r") as f:
-		config = f.read()
+	client = Client()
+	config = client.get_config()
 	def __init__(s):
 		s.devices = []
 		s.connections = []
-		for line in s.config.strip().split("\n"):
+		for line in s.config:
 			i, o, f, a = line.split("\t")
 			s.connections.append((i,o,f,a))
 			if i not in s.devices:

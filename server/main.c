@@ -134,11 +134,13 @@ int main(int argc, char **argv)
 	stop_all = 0;
 
 	printf("M Hello\n");
-	setup_socket();
-	load_config_file();
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGHUP, sighup_handler);
+	//signal(SIGCHLD, sigchld_handler);
+
+	setup_socket();
+	load_config_file();
 
 	manage_inputs();
 	manage_outputs();

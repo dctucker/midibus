@@ -34,6 +34,7 @@ void setup_socket()
 	printf("U %d bound\n", UDP_PORT);
 
 	pthread_create( &thread, NULL, socket_thread, NULL );
+	//pthread_join( thread, NULL );
 }
 
 void *socket_thread()
@@ -63,8 +64,11 @@ void *socket_thread()
 					sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
 				}
 			}
+			sprintf(out_buffer, "\003");
+			sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
 		}
 	}
 	while( ! stop_all );
 	close(sockfd);
+	printf("U close\n");
 }
