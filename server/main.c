@@ -3,9 +3,12 @@
 #include "thru.h"
 #include "main.h"
 
+const char in[MAX_CONNECTIONS][MAX_STRING], out[MAX_CONNECTIONS][MAX_STRING];
+const char func[MAX_CONNECTIONS][MAX_STRING], args[MAX_CONNECTIONS][MAX_STRING];
+
 void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args)
 {
-	printf("%s %s %s %s\n", in_name, out_name, func_name, args);
+	printf("R %s %s %s %s\n", in_name, out_name, func_name, args);
 	int i = 0;
 	for(; i < n_read_threads; ++i )
 		if( strcmp( read_data[i].port_name, in_name ) == 0 )
@@ -50,9 +53,17 @@ void manage_inputs()
 			int result;
 			result = setup_midi_device( &read_data[i] );
 			if( result == 0 && read_data[i].midi != NULL )
+			{
 				pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+			}
 			else
+			{
 				had_errors++;
+				if( tries == 4 )
+				{
+					printf("E %d %s \"%s\"\n", result, read_data[i].port_name, snd_strerror(result));
+				}
+			}
 		}
 
 		if( had_errors )
@@ -72,9 +83,8 @@ void manage_outputs()
 
 void load_config_file()
 {
-	const char in[MAX_CONNECTIONS][MAX_STRING], out[MAX_CONNECTIONS][MAX_STRING];
-	const char func[MAX_CONNECTIONS][MAX_STRING], args[MAX_CONNECTIONS][MAX_STRING];
 	FILE *fp = fopen("midi-server.conf","r");
+	printf("M midi-server.conf open\n");
 	int n = 0;
 	while( fscanf( fp, "%s %s %s %s", &in[n], &out[n], &func[n], &args[n]) != EOF)
 	{
@@ -82,6 +92,16 @@ void load_config_file()
 		n++;
 	}
 	fclose(fp);
+	printf("M midi-server.conf close\n");
+}
+
+void join_threads()
+{
+	printf("M join threads\n");
+	for( int i = 0; i < n_read_threads; ++i )
+	{
+		pthread_join( threads[i], NULL );
+	}
 }
 
 void sighup_handler(int sig)
@@ -91,11 +111,14 @@ void sighup_handler(int sig)
 		return;
 	hanging_up = 1;
 
-	printf("Reloading\n");
+	printf("M Reloading\n");
 	fflush(stdout);
 	load_config_file();
+
 	manage_inputs();
 	manage_outputs();
+	join_threads();
+
 	fflush(stdout);
 	hanging_up = 0;
 }
@@ -103,12 +126,15 @@ void sighup_handler(int sig)
 void sigint_handler(int sig)
 {
 	stop_all = 1;
+	printf("\nM interrupt\n");
 }
 
 int main(int argc, char **argv)
 {
 	stop_all = 0;
 
+	printf("M Hello\n");
+	setup_socket();
 	load_config_file();
 
 	signal(SIGINT, sigint_handler);
@@ -116,13 +142,14 @@ int main(int argc, char **argv)
 
 	manage_inputs();
 	manage_outputs();
-	setup_socket();
+	join_threads();
+	printf("M idle loop\n");
 
 	do // idle
 		sleep(1);
 	while( ! stop_all );
 
-	printf("Done.\n");
+	printf("M exit\n");
 
 	return EXIT_SUCCESS;
 }

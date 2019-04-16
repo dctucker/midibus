@@ -33,7 +33,7 @@ void manage_thread_outputs(struct read_thread_data *in)
 					output_devices[d].midi_in_exclusive = NULL;
 					out->midi_in = in->midi;
 					out->output_device = &output_devices[d];
-					printf("Connected %s to %s\n", in->port_name, out->port_name);
+					printf("C %s -> %s\n", in->port_name, out->port_name);
 				}
 				break;
 			}
@@ -59,11 +59,11 @@ int setup_midi_device(struct read_thread_data *data)
 	snd_rawmidi_t *midi_out;
 
 	if ((err = snd_rawmidi_open(&data->midi, &midi_out, data->port_name, SND_RAWMIDI_APPEND | SND_RAWMIDI_NONBLOCK)) < 0) {
-		error("cannot open port \"%s\": %s", data->port_name, snd_strerror(err));
+		//error("E %d %s \"%s\"", err, data->port_name, snd_strerror(err));
 		data->midi = NULL;
-		return -1;
+		return err;
 	}
-	printf("Opened %s for read / write\n", data->port_name);
+	printf("S %s\n", data->port_name);
 	int d = 0;
 	for(; d < n_output_devices; ++d )
 		if( strcmp( output_devices[d].port_name, data->port_name ) == 0 )
@@ -92,6 +92,7 @@ void *read_thread(void *arg)
 	pfds = alloca(npfds * sizeof(struct pollfd));
 	snd_rawmidi_poll_descriptors(data->midi, pfds, npfds);
 
+	printf("T %s begin\n", data->port_name);
 	do
 	{
 		int i;
@@ -101,7 +102,7 @@ void *read_thread(void *arg)
 		err = poll(pfds, npfds, 200);
 		if (err < 0) {
 			if( ! stop_all )
-				error("poll failed: %s", strerror(errno));
+				error("E %d %s \"poll failed: %s\"", errno, data->port_name, strerror(errno));
 			break;
 		}
 		if ((err = snd_rawmidi_poll_descriptors_revents(data->midi, pfds, npfds, &revents)) < 0) {
@@ -113,7 +114,7 @@ void *read_thread(void *arg)
 		err = snd_rawmidi_read( data->midi, buf, sizeof(buf) );
 		if (err == -EAGAIN) continue;
 		if (err < 0) {
-			error("cannot read from port \"%s\": %s", data->port_name, snd_strerror(err));
+			error("E %d %s \"%s\"", err, data->port_name, snd_strerror(err));
 			break;
 		}
 
@@ -143,9 +144,10 @@ cleanup:
 	if( data->midi )
 	{
 		snd_rawmidi_close(data->midi);
-		printf("Closed %s\n", data->port_name);
+		printf("X %s\n", data->port_name);
 		data->midi = NULL;
 	}
+	printf("T %s end\n", data->port_name);
 	fflush(stderr);
 	fflush(stdout);
 }

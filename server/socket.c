@@ -14,10 +14,10 @@ struct sockaddr_in servaddr, cliaddr;
 
 void setup_socket()
 {
-
+	int err;
 	if( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 )
 	{
-		printf("socket creation failed\n");
+		printf("E socket creation failed\n");
 		return;
 	}
 
@@ -26,12 +26,12 @@ void setup_socket()
 	servaddr.sin_family    = AF_INET; // IPv4
 	servaddr.sin_addr.s_addr = INADDR_ANY;
 	servaddr.sin_port = htons(UDP_PORT);
-	if( bind(sockfd, (const struct sockaddr *) &servaddr, sizeof(servaddr)) < 0 )
+	if( (err = bind(sockfd, (const struct sockaddr *) &servaddr, sizeof(servaddr))) < 0 )
 	{
-		printf("bind failed\n");
+		printf("E %d UDP bind failed\n", err);
 		return;
 	}
-	printf("Bound UDP %d\n", UDP_PORT);
+	printf("U %d bound\n", UDP_PORT);
 
 	pthread_create( &thread, NULL, socket_thread, NULL );
 }
@@ -41,13 +41,13 @@ void *socket_thread()
 	char buffer[ BUFSIZE ];
 	char out_buffer[ 16 * BUFSIZE ];
 	int num_bytes;
-	printf("UDP thread started\n");
+	printf("U thread started\n");
 	do
 	{
 		int len;
 		num_bytes = recvfrom(sockfd, buffer, BUFSIZE, 0, ( struct sockaddr *) &cliaddr, &len);
 		buffer[num_bytes] = '\000';
-		printf("UDP %s", buffer);
+		printf("U %s", buffer);
 		if( strcmp( buffer, "config\n" ) == 0 )
 		{
 			for( int i = 0; i < n_read_threads; ++i )

@@ -82,13 +82,13 @@ void setup_write_func( struct write_data *data )
 	if( strcmp(data->func_name, "thru") == 0 )
 	{
 		data->func = write_thru;
-		printf("Thru\n", data->args_name);
+		printf("W %s thru\n", data->port_name, data->args_name);
 	}
 	else if( strcmp(data->func_name, "realtime") == 0 )
 	{
 		data->func = write_realtime;
 		data->args = (void *) data->args_name;
-		printf("Setup realtime %s\n", data->args_name);
+		printf("W %s realtime %s\n", data->port_name, data->args_name);
 	}
 	else if( strcmp(data->func_name, "channel") == 0 )
 	{
@@ -116,12 +116,13 @@ void setup_write_func( struct write_data *data )
 			pt = strtok(NULL, ",");
 		}
 		data->args = (void *) channel_mask;
-		printf("Setup channel mask %X\n", channel_mask);
+		printf("W %s channel %X\n", data->port_name, channel_mask);
 		free(copy);
 	}
 	else
 	{
 		data->func = write_none;
+		printf("W none\b");
 	}
 	//printf("Setup write %s func %s args 0x%08x\n", data->port_name, name, data->args );
 }
