@@ -124,10 +124,9 @@ class Config:
 				s.devices.append(i)
 			if o not in s.devices:
 				s.devices.append(o)
-		s.connected = []
+		s.connected = s.client.get_devices()
 		# TODO get which devices are present
-		for device in s.devices:
-			s.connected.append(device)
+		#s.connected.append(s.devices[0])
 	def get_matrix(s):
 		ret = []
 		for i,o,f,a in s.connections:

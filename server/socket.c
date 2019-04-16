@@ -67,6 +67,19 @@ void *socket_thread()
 			sprintf(out_buffer, "\003");
 			sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
 		}
+		else if( strcmp( buffer, "devices\n" ) == 0 )
+		{
+			for( int i = 0; i < n_read_threads; ++i )
+			{
+				if( read_data[i].midi != NULL )
+				{
+					sprintf(out_buffer, "%s\n", read_data[i].port_name);
+					sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
+				}
+			}
+			sprintf(out_buffer, "\003");
+			sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
+		}
 	}
 	while( ! stop_all );
 	close(sockfd);

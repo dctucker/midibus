@@ -16,5 +16,12 @@ class Client:
 			except socket.timeout:
 				print('REQUEST TIMED OUT')
 	def get_config(s):
-		return [r.strip() for r in s.ask("config")]
+		return [r.strip() for r in s.ask('config')]
+	def get_devices(s):
+		return [r.strip() for r in s.ask('devices')]
 
+if __name__ == '__main__':
+	print {
+		'devices': Client().get_devices(),
+		'config' : Client().get_config(),
+	}
