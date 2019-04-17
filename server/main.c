@@ -8,7 +8,7 @@ const char func[MAX_CONNECTIONS][MAX_STRING], args[MAX_CONNECTIONS][MAX_STRING];
 
 void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args)
 {
-	printf("R %s %s %s %s\n", in_name, out_name, func_name, args);
+	//printf("R %s %s %s %s\n", in_name, out_name, func_name, args);
 	int i = 0;
 	for(; i < n_read_threads; ++i )
 		if( strcmp( read_data[i].port_name, in_name ) == 0 )
@@ -117,8 +117,7 @@ void sighup_handler(int sig)
 
 	manage_inputs();
 	manage_outputs();
-	send_devices();
-	join_threads();
+	emit_devices();
 
 	fflush(stdout);
 	hanging_up = 0;
@@ -140,19 +139,23 @@ int main(int argc, char **argv)
 	signal(SIGHUP, sighup_handler);
 	//signal(SIGCHLD, sigchld_handler);
 
-	setup_socket();
+	pthread_t *socket_thread = setup_socket();
 	load_config_file();
 
 	manage_inputs();
 	manage_outputs();
-	join_threads();
 	printf("M idle loop\n");
 
 	do // idle
 		sleep(1);
 	while( ! stop_all );
 
+	join_threads();
+
 	printf("M exit\n");
+
+	stop_all = 1;
+	pthread_join( *socket_thread, NULL );
 
 	return EXIT_SUCCESS;
 }

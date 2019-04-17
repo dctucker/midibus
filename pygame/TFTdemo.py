@@ -117,22 +117,30 @@ class Config:
 		s.connections = []
 		s.connected = []
 		s.client = client
-		s.client.get_config(s.config_callback)
+
+		s.client.callbacks['config'] = s.config_callback
+		s.client.get_config()
 		s.client.select()
-		s.client.get_devices(s.devices_callback)
+
+		s.client.callbacks['devices'] = s.devices_callback
+		s.client.get_devices()
 		s.client.select()
+
 	def config_callback(s, data):
 		s.devices = []
 		s.connections = []
 		for line in data:
-			i, o, f, a = line.split("\t")
+			i, o, f, a = line
 			s.connections.append((i,o,f,a))
 			if i not in s.devices:
 				s.devices.append(i)
 			if o not in s.devices:
 				s.devices.append(o)
+		print s.devices
+		print s.connections
 	def devices_callback(s, data):
-		s.connected = data
+		s.connected = [ d[0] for d in data ]
+		print s.connected
 	def get_matrix(s):
 		ret = []
 		for i,o,f,a in s.connections:
@@ -230,7 +238,9 @@ class DeviceMatrix:
 screen.blit(bgimage, bgrect)
 #KeysScreen().draw()
 client = Client()
-matrix = DeviceMatrix(Config(client))
+config = Config(client)
+matrix = DeviceMatrix(config)
+
 matrix.draw()
 pygame.display.flip()
 
@@ -251,6 +261,9 @@ while True:
 			# Key pressed --> End program
 			quit()
 
-	client.select()
+	if client.select():
+		matrix.draw()
+		pygame.display.flip()
+
 
 	time.sleep(0.2)
