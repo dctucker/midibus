@@ -112,21 +112,27 @@ class KeysScreen:
 			pygame.draw.line(screen, (0,0,0), [0, y * 40], [480, y * 40], 1)
 
 class Config:
-	client = Client()
-	config = client.get_config()
-	def __init__(s):
+	def __init__(s, client):
 		s.devices = []
 		s.connections = []
-		for line in s.config:
+		s.connected = []
+		s.client = client
+		s.client.get_config(s.config_callback)
+		s.client.select()
+		s.client.get_devices(s.devices_callback)
+		s.client.select()
+	def config_callback(s, data):
+		s.devices = []
+		s.connections = []
+		for line in data:
 			i, o, f, a = line.split("\t")
 			s.connections.append((i,o,f,a))
 			if i not in s.devices:
 				s.devices.append(i)
 			if o not in s.devices:
 				s.devices.append(o)
-		s.connected = s.client.get_devices()
-		# TODO get which devices are present
-		#s.connected.append(s.devices[0])
+	def devices_callback(s, data):
+		s.connected = data
 	def get_matrix(s):
 		ret = []
 		for i,o,f,a in s.connections:
@@ -223,7 +229,8 @@ class DeviceMatrix:
 
 screen.blit(bgimage, bgrect)
 #KeysScreen().draw()
-matrix = DeviceMatrix(Config())
+client = Client()
+matrix = DeviceMatrix(Config(client))
 matrix.draw()
 pygame.display.flip()
 
@@ -243,5 +250,7 @@ while True:
 		elif (event.type is pygame.KEYDOWN):
 			# Key pressed --> End program
 			quit()
+
+	client.select()
 
 	time.sleep(0.2)

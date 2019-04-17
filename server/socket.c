@@ -11,6 +11,7 @@
 
 pthread_t thread;
 struct sockaddr_in servaddr, cliaddr;
+int clilen;
 
 void setup_socket()
 {
@@ -22,7 +23,6 @@ void setup_socket()
 	}
 
 	memset(&servaddr, 0, sizeof(servaddr));
-	memset(&cliaddr, 0, sizeof(cliaddr));
 	servaddr.sin_family    = AF_INET; // IPv4
 	servaddr.sin_addr.s_addr = INADDR_ANY;
 	servaddr.sin_port = htons(UDP_PORT);
@@ -37,6 +37,46 @@ void setup_socket()
 	//pthread_join( thread, NULL );
 }
 
+void sendto_client(const char *str)
+{
+	sendto(sockfd, str, strlen(str), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, clilen);
+}
+
+void send_config()
+{
+	char out_buffer[ BUFSIZE ];
+	sendto_client("config\n");
+	for( int i = 0; i < n_read_threads; ++i )
+	{
+		for( int o = 0; o < read_data[i].n_outs; ++o )
+		{
+			sprintf(out_buffer, "%s\t%s\t%s\t%s\n",
+				read_data[i].port_name,
+				read_data[i].outs[o].port_name,
+				read_data[i].outs[o].func_name,
+				read_data[i].outs[o].args_name
+			);
+			sendto_client(out_buffer);
+		}
+	}
+	sendto_client("\003");
+}
+
+void send_devices()
+{
+	char out_buffer[ BUFSIZE ];
+	sendto_client("devices\n");
+	for( int i = 0; i < n_read_threads; ++i )
+	{
+		if( read_data[i].midi != NULL )
+		{
+			sprintf(out_buffer, "%s\n", read_data[i].port_name);
+			sendto_client(out_buffer);
+		}
+	}
+	sendto_client("\003");
+}
+
 void *socket_thread()
 {
 	char buffer[ BUFSIZE ];
@@ -45,40 +85,18 @@ void *socket_thread()
 	printf("U thread started\n");
 	do
 	{
-		int len;
-		num_bytes = recvfrom(sockfd, buffer, BUFSIZE, 0, ( struct sockaddr *) &cliaddr, &len);
+		memset(&cliaddr, 0, sizeof(cliaddr));
+		clilen = sizeof(cliaddr);
+		num_bytes = recvfrom(sockfd, buffer, BUFSIZE, 0, ( struct sockaddr *) &cliaddr, &clilen);
 		buffer[num_bytes] = '\000';
-		printf("U %s", buffer);
+		printf("U %d %s", htons(cliaddr.sin_port), buffer);
 		if( strcmp( buffer, "config\n" ) == 0 )
 		{
-			for( int i = 0; i < n_read_threads; ++i )
-			{
-				for( int o = 0; o < read_data[i].n_outs; ++o )
-				{
-					sprintf(out_buffer, "%s\t%s\t%s\t%s\n",
-						read_data[i].port_name,
-						read_data[i].outs[o].port_name,
-						read_data[i].outs[o].func_name,
-						read_data[i].outs[o].args_name
-					);
-					sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
-				}
-			}
-			sprintf(out_buffer, "\003");
-			sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
+			send_config();
 		}
 		else if( strcmp( buffer, "devices\n" ) == 0 )
 		{
-			for( int i = 0; i < n_read_threads; ++i )
-			{
-				if( read_data[i].midi != NULL )
-				{
-					sprintf(out_buffer, "%s\n", read_data[i].port_name);
-					sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
-				}
-			}
-			sprintf(out_buffer, "\003");
-			sendto(sockfd, out_buffer, strlen(out_buffer), MSG_CONFIRM, ( struct sockaddr *) &cliaddr, len);
+			send_devices();
 		}
 	}
 	while( ! stop_all );

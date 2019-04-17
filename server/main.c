@@ -117,6 +117,7 @@ void sighup_handler(int sig)
 
 	manage_inputs();
 	manage_outputs();
+	send_devices();
 	join_threads();
 
 	fflush(stdout);
