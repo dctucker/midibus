@@ -37,8 +37,8 @@ bridge between my synth rig and my DAW computer.
 
 ## Client/server
 
-Currently the client is extremely dumb, simply reading the server's config file.
-This will change in the future making it more interactive. But hey, at least it
+Currently the client is pretty simple; it loads configuration via socket stream.
+It will change in the future to be more interactive. But hey, at least it
 looks good, and you can see the current configuration presented visually.
 
 The server has a thread for each input device, and maintains state for each
