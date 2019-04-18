@@ -9,8 +9,8 @@ LIBS=-lasound -lpthread
 
 all: midi-server
 
-DEPS = socket.h thru.h write.h main.h
-OBJ = socket.o thru.o write.o main.o
+DEPS = socket.h list.h thru.h write.h main.h
+OBJ = socket.o list.o thru.o write.o main.o
 
 $(ODIR)/%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
