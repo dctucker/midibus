@@ -2,6 +2,7 @@
 
 import pygame, time, os, logging
 from client import Client
+from config import Config
 
 os.putenv('SDL_VIDEODRIVER', 'fbcon')
 os.putenv('SDL_FBDEV', '/dev/fb0')
@@ -111,41 +112,6 @@ class KeysScreen:
 		for y in range(8):
 			pygame.draw.line(screen, (0,0,0), [0, y * 40], [480, y * 40], 1)
 
-class Config:
-	def __init__(s, client):
-		s.devices = []
-		s.connections = []
-		s.connected = []
-		s.client = client
-
-		s.client.callbacks['config'] = s.config_callback
-		s.client.get_config()
-		s.client.select()
-
-		s.client.callbacks['devices'] = s.devices_callback
-		s.client.get_devices()
-		s.client.select()
-
-	def config_callback(s, data):
-		s.devices = []
-		s.connections = []
-		for line in data:
-			i, o, f, a = line
-			s.connections.append((i,o,f,a))
-			if i not in s.devices:
-				s.devices.append(i)
-			if o not in s.devices:
-				s.devices.append(o)
-		print s.devices
-		print s.connections
-	def devices_callback(s, data):
-		s.connected = [ d[0] for d in data ]
-		print s.connected
-	def get_matrix(s):
-		ret = []
-		for i,o,f,a in s.connections:
-			ret.append((s.devices.index(i), s.devices.index(o)))
-		return ret
 
 def format_devname(d):
 	return d.replace("hw:","")
@@ -153,11 +119,10 @@ def format_devname(d):
 class DeviceMatrix:
 	def __init__(s, config):
 		pygame.font.init()
-
-		s.load_config(config)
-
-	def load_config(s, config):
 		s.config = config
+		s.load_config()
+
+	def load_config(s):
 		s.texts = []
 		s.connections = s.config.get_matrix()
 		s.cursor = [0,0]
@@ -185,9 +150,8 @@ class DeviceMatrix:
 			half = s.texts[i].get_height() / 2
 			screen.blit(s.texts[i],     (s.ox + s.get_x(l-1), s.get_y(i) - half))
 			screen.blit(s.texts[l+i], (s.get_x(i) - half, s.oy + s.get_y(l-1)))
-			if is_connected:
-				s.draw_io_box('I', 0, s.get_y(i) - 6)
-				s.draw_io_box('O', s.get_x(i) - 6, 0)
+			s.draw_io_box('I', 0, s.get_y(i) - 6, is_connected)
+			s.draw_io_box('O', s.get_x(i) - 6, 0, is_connected)
 		for i,o in s.connections:
 			is_connected = s.config.devices[i] in s.config.connected and s.config.devices[o] in s.config.connected
 			color = (192,192,96) if is_connected else (128,128,128)
@@ -213,8 +177,8 @@ class DeviceMatrix:
 		pygame.mouse.set_pos([matrix.get_x(matrix.cursor[0]), matrix.get_y(matrix.cursor[1])])
 		pygame.mouse.set_cursor(*pygame.cursors.diamond)
 
-	def draw_io_box(s, ch, x, y): 
-		bg = (192,128,32)
+	def draw_io_box(s, ch, x, y, enabled=True):
+		bg = (192,128,32) if enabled else (0,0,32)
 		fg = (0,0,0)
 		pygame.draw.rect(screen, bg, [x,y, 13,13], 0)
 		screen.blit(s.small_font.render(ch , True, fg), [x+3,y-1])
@@ -262,8 +226,8 @@ while True:
 			quit()
 
 	if client.select():
+		matrix.load_config()
 		matrix.draw()
 		pygame.display.flip()
 
-
-	time.sleep(0.2)
+	time.sleep(0.3)

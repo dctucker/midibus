@@ -25,8 +25,7 @@ class Client:
 		if s.server_socket in excep:
 			print "WHOA"
 		if s.server_socket in readable:
-			s.listen()
-			return True
+			return s.listen()
 
 	def listen(s):
 		try:
@@ -37,10 +36,10 @@ class Client:
 		except socket.error:
 			print('Socket error')
 			return
-
 		s.callback_name = response[0][0]
 		print "calling " +  s.callback_name
-		return s.callbacks[ s.callback_name ](response[1:])
+		s.callbacks[ s.callback_name ](response[1:])
+		return True
 	def ask(s, what):
 		s.server_socket.send(what + "\n")
 	def get_config(s):
