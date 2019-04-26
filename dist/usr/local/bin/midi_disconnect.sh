@@ -1,4 +1,4 @@
 #!/bin/bash
 
-pid=$(pgrep -f "python.*matrix.py")
+pid=$(pgrep -x "midi-server")
 [ -n "$pid" ] && kill -s SIGHUP $pid

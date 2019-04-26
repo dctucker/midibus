@@ -6,7 +6,7 @@ After=sound.target
 
 [Service]
 Restart=no
-ExecStart=/home/pi/Development/midibus/server/midi-server
+ExecStart=/bin/sh -c '/home/pi/Development/midibus/server/midi-server >> /var/log/midi-server.log'
 ExecStop=/bin/sh -c '/bin/kill -s SIGINT $MAINPID 2>/dev/null'
 #OOMScoreAdjust=-100
 TimeoutStopSec=10s

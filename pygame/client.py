@@ -37,9 +37,12 @@ class Client:
 			print('Socket error')
 			return
 		s.callback_name = response[0][0]
-		print "calling " +  s.callback_name
-		s.callbacks[ s.callback_name ](response[1:])
-		return True
+		if s.callback_name in s.callbacks:
+			print "calling " +  s.callback_name
+			s.callbacks[ s.callback_name ](response[1:])
+			return True
+		else:
+			print "cannot call '" + s.callback_name + "'"
 	def ask(s, what):
 		s.server_socket.send(what + "\n")
 	def get_config(s):
