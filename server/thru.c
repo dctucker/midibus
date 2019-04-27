@@ -133,7 +133,7 @@ void *read_thread(void *arg)
 			if( excl != NULL && excl != data->midi )
 				continue;
 
-			if( out->func( out, buf, err, out->args ) )
+			if( out->func( out, buf, err ) )
 				printf("%s\n", out->port_name);
 		}
 		fflush(stdout);
@@ -147,6 +147,15 @@ cleanup:
 		printf("X %s\n", data->port_name);
 		data->midi = NULL;
 	}
+
+	for( int o = 0; o < data->n_outs; ++o )
+	{
+		struct write_data *out = &data->outs[o];
+		printf("X %s /> %s", data->port_name, out->port_name);
+		teardown_write_func( out );
+		printf("\n");
+	}
+
 	printf("T %s end\n", data->port_name);
 	fflush(stderr);
 	fflush(stdout);

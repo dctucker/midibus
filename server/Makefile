@@ -4,7 +4,7 @@ IDIR = ../include/server
 ODIR = obj
 
 CC=gcc
-CFLAGS=-I$(IDIR)
+CFLAGS=-I$(IDIR) -g
 LIBS=-lasound -lpthread
 
 all: midi-server

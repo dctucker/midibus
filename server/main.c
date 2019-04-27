@@ -1,3 +1,5 @@
+// hw:JUNODS	hw:II	notes	3
+
 #include "socket.h"
 #include "write.h"
 #include "thru.h"
@@ -24,15 +26,21 @@ void configure_connection(const char *in_name, const char *out_name, const char 
 	for(; o < read_data[i].n_outs; ++o )
 		if( strcmp( read_data[i].outs[o].port_name, out_name ) == 0 )
 			break;
+	struct write_data *data = &read_data[i].outs[o];
 	if( o == read_data[i].n_outs )
 	{
-		struct write_data *data = &read_data[i].outs[o];
+		clear_write_data( data );
 		data->output_device = NULL;
 		data->port_name = out_name;
 		data->func_name = func_name;
 		data->args_name = args;
 		setup_write_func( data );
 		read_data[i].n_outs++;
+	}
+	else
+	{
+		data->args_name = args;
+		parse_write_args( data );
 	}
 }
 

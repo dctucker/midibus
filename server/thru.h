@@ -1,6 +1,7 @@
 #pragma once
 
 #include <alsa/asoundlib.h>
+#include "write.h"
 #include "common.h"
 
 int n_read_threads;
@@ -14,17 +15,6 @@ struct output_device_t {
 	snd_rawmidi_t *midi_in_exclusive;
 	const char *port_name;
 } output_devices[MAX_OUTS];
-
-struct write_data
-{
-	struct output_device_t *output_device;
-	snd_rawmidi_t *midi_in;
-	const char *port_name;
-	const char *func_name;
-	const char *args_name;
-	int (*func)();
-	void *args;
-};
 
 struct read_thread_data
 {
