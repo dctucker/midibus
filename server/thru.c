@@ -1,14 +1,4 @@
-#include "thru.h"
-
-static void error(const char *format, ...)
-{
-	va_list ap;
-
-	va_start(ap, format);
-	vfprintf(stderr, format, ap);
-	va_end(ap);
-	putc('\n', stderr);
-}
+#include "app.h"
 
 void manage_thread_outputs(struct read_thread_data *in)
 {
@@ -24,15 +14,15 @@ void manage_thread_outputs(struct read_thread_data *in)
 
 		// find named output in output_devices
 		int d = 0;
-		for(; d < n_output_devices; ++d )
+		for(; d < app.n_output_devices; ++d )
 		{
-			if( strcmp( output_devices[d].port_name, out->port_name ) == 0 )
+			if( strcmp( app.output_devices[d].port_name, out->port_name ) == 0 )
 			{
-				if( output_devices[d].midi != NULL )
+				if( app.output_devices[d].midi != NULL )
 				{
-					output_devices[d].midi_in_exclusive = NULL;
+					app.output_devices[d].midi_in_exclusive = NULL;
 					out->midi_in = in->midi;
-					out->output_device = &output_devices[d];
+					out->output_device = &app.output_devices[d];
 					printf("C %s -> %s\n", in->port_name, out->port_name);
 				}
 				break;
@@ -40,7 +30,7 @@ void manage_thread_outputs(struct read_thread_data *in)
 		}
 		/*
 		// in list but not opened yet
-		if( output_devices[d].midi == NULL )
+		if( app.output_devices[d].midi == NULL )
 		{
 			if( (err = snd_rawmidi_open(NULL, &out->midi, out->port_name, SND_RAWMIDI_APPEND | SND_RAWMIDI_NONBLOCK)) < 0 )
 			{
@@ -65,15 +55,15 @@ int setup_midi_device(struct read_thread_data *data)
 	}
 	printf("S %s\n", data->port_name);
 	int d = 0;
-	for(; d < n_output_devices; ++d )
-		if( strcmp( output_devices[d].port_name, data->port_name ) == 0 )
+	for(; d < app.n_output_devices; ++d )
+		if( strcmp( app.output_devices[d].port_name, data->port_name ) == 0 )
 			break;
-	if( d == n_output_devices )
+	if( d == app.n_output_devices )
 	{
-		output_devices[d].port_name = data->port_name;
-		n_output_devices++;
+		app.output_devices[d].port_name = data->port_name;
+		app.n_output_devices++;
 	}
-	output_devices[d].midi = midi_out;
+	app.output_devices[d].midi = midi_out;
 	manage_thread_outputs( data );
 	return 0;
 }
@@ -113,7 +103,8 @@ void *read_thread(void *arg)
 		if( ! ( revents & POLLIN ) ) continue;
 		err = snd_rawmidi_read( data->midi, buf, sizeof(buf) );
 		if (err == -EAGAIN) continue;
-		if (err < 0) {
+		if (err < 0)
+		{
 			error("E %d %s \"%s\"", err, data->port_name, snd_strerror(err));
 			break;
 		}
@@ -126,15 +117,24 @@ void *read_thread(void *arg)
 		for( int o = 0; o < data->n_outs; ++o )
 		{
 			struct write_data *out = &data->outs[o];
-			if( out->output_device == NULL || out->output_device->midi == NULL || out->func == NULL )
+			if( out->output_device == NULL || out->output_device->midi == NULL || out->callbacks == NULL )
 				continue;
 			snd_rawmidi_t *excl = out->output_device->midi_in_exclusive;
 
 			if( excl != NULL && excl != data->midi )
 				continue;
 
-			if( out->func( out, buf, err ) )
-				printf("%s\n", out->port_name);
+			for( int c = 0; c < MAX_CALLBACKS; c++ )
+			{
+				struct write_callback_t *callback = &out->callbacks[c];
+				if( callback->func == NULL )
+					continue;
+				int res = callback->func( out, &(callback->args), buf, err );
+				if( res > 0 )
+					printf("%s\n", out->port_name);
+				else if( res < 0 )
+					break;
+			}
 		}
 		fflush(stdout);
 	}

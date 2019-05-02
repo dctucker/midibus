@@ -1,47 +1,55 @@
 // hw:JUNODS	hw:II	notes	3
 
-#include "socket.h"
-#include "write.h"
-#include "thru.h"
 #include "main.h"
 
-const char in[MAX_CONNECTIONS][MAX_STRING], out[MAX_CONNECTIONS][MAX_STRING];
-const char func[MAX_CONNECTIONS][MAX_STRING], args[MAX_CONNECTIONS][MAX_STRING];
-
-void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args)
+void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args_name)
 {
-	//printf("R %s %s %s %s\n", in_name, out_name, func_name, args);
+	//printf("R %s %s %s %s\n", in_name, out_name, func_name, args_name);
 	int i = 0;
-	for(; i < n_read_threads; ++i )
-		if( strcmp( read_data[i].port_name, in_name ) == 0 )
+	for(; i < app.n_read_threads; ++i )
+		if( strcmp( app.read_data[i].port_name, in_name ) == 0 )
 			break;
-	if( i == n_read_threads )
+	if( i == app.n_read_threads )
 	{
-		n_read_threads++;
-		read_data[i].midi = NULL;
-		read_data[i].port_name = in_name;
+		app.n_read_threads++;
+		app.read_data[i].midi = NULL;
+		app.read_data[i].port_name = in_name;
 	}
 
 	int o = 0;
-	for(; o < read_data[i].n_outs; ++o )
-		if( strcmp( read_data[i].outs[o].port_name, out_name ) == 0 )
+	for(; o < app.read_data[i].n_outs; ++o )
+		if( strcmp( app.read_data[i].outs[o].port_name, out_name ) == 0 )
 			break;
-	struct write_data *data = &read_data[i].outs[o];
-	if( o == read_data[i].n_outs )
+	struct write_data *data = &app.read_data[i].outs[o];
+	struct write_callback_t *callback;
+	if( o == app.read_data[i].n_outs ) // new
 	{
 		clear_write_data( data );
 		data->output_device = NULL;
 		data->port_name = out_name;
-		data->func_name = func_name;
-		data->args_name = args;
-		setup_write_func( data );
-		read_data[i].n_outs++;
+		callback = setup_write_func( data, func_name );
+		parse_write_args( data, callback, args_name );
+		app.read_data[i].n_outs++;
 	}
 	else
 	{
-		data->args_name = args;
-		parse_write_args( data );
+		callback = setup_write_func( data, func_name );
+		parse_write_args( data, callback, args_name );
 	}
+}
+
+void load_config_file()
+{
+	FILE *fp = fopen("midi-server.conf","r");
+	printf("M midi-server.conf open\n");
+	int n = 0;
+	while( fscanf( fp, "%s %s %s %s", app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args) != EOF)
+	{
+		configure_connection(app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args);
+		n++;
+	}
+	fclose(fp);
+	printf("M midi-server.conf close\n");
 }
 
 void manage_inputs()
@@ -52,24 +60,24 @@ void manage_inputs()
 	{
 		had_errors = 0;
 		int i = 0;
-		for(; i < n_read_threads; ++i )
+		for(; i < app.n_read_threads; ++i )
 		{
-			if( read_data[i].midi != NULL )
+			if( app.read_data[i].midi != NULL )
 				continue;
-			if( strlen(read_data[i].port_name) <= 0 )
+			if( strlen(app.read_data[i].port_name) <= 0 )
 				continue;
 			int result;
-			result = setup_midi_device( &read_data[i] );
-			if( result == 0 && read_data[i].midi != NULL )
+			result = setup_midi_device( &app.read_data[i] );
+			if( result == 0 && app.read_data[i].midi != NULL )
 			{
-				pthread_create( &threads[i], NULL, read_thread, (void *) &read_data[i] );
+				pthread_create( &app.threads[i], NULL, read_thread, (void *) &app.read_data[i] );
 			}
 			else
 			{
 				had_errors++;
 				if( tries == 4 )
 				{
-					printf("E %d %s \"%s\"\n", result, read_data[i].port_name, snd_strerror(result));
+					printf("E %d %s \"%s\"\n", result, app.read_data[i].port_name, snd_strerror(result));
 				}
 			}
 		}
@@ -83,32 +91,18 @@ void manage_inputs()
 
 void manage_outputs()
 {
-	for( int i = 0; i < n_read_threads; ++i )
+	for( int i = 0; i < app.n_read_threads; ++i )
 	{
-		manage_thread_outputs( &read_data[i] );
+		manage_thread_outputs( &app.read_data[i] );
 	}
-}
-
-void load_config_file()
-{
-	FILE *fp = fopen("midi-server.conf","r");
-	printf("M midi-server.conf open\n");
-	int n = 0;
-	while( fscanf( fp, "%s %s %s %s", &in[n], &out[n], &func[n], &args[n]) != EOF)
-	{
-		configure_connection(in[n], out[n], func[n], args[n]);
-		n++;
-	}
-	fclose(fp);
-	printf("M midi-server.conf close\n");
 }
 
 void join_threads()
 {
 	printf("M join threads\n");
-	for( int i = 0; i < n_read_threads; ++i )
+	for( int i = 0; i < app.n_read_threads; ++i )
 	{
-		pthread_join( threads[i], NULL );
+		pthread_join( app.threads[i], NULL );
 	}
 }
 

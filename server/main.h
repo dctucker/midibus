@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <signal.h>
-
-pthread_t threads[MAX_THREADS];
-#define MAX_CONNECTIONS 64
-#define MAX_STRING 256
+#include "app.h"
+#include "socket.h"
+#include "write.h"
+#include "thru.h"
