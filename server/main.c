@@ -28,13 +28,13 @@ void configure_connection(const char *in_name, const char *out_name, const char 
 		data->output_device = NULL;
 		data->port_name = out_name;
 		callback = setup_write_func( data, func_name );
-		parse_write_args( data, callback, args_name );
+		parse_write_args( callback, args_name );
 		app.read_data[i].n_outs++;
 	}
 	else
 	{
 		callback = setup_write_func( data, func_name );
-		parse_write_args( data, callback, args_name );
+		parse_write_args( callback, args_name );
 	}
 }
 
@@ -135,7 +135,9 @@ int main(int argc, char **argv)
 {
 	stop_all = 0;
 
-	printf("M Hello\n");
+	size_t bytes = sizeof(app);
+	setlocale(LC_NUMERIC, "");
+	printf("M Hello. %'d bytes allocated to app.\n", bytes);
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGHUP, sighup_handler);

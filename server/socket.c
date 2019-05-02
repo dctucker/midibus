@@ -144,7 +144,8 @@ void *socket_thread()
 				max_sd = client_socket;
 		}
 
-		activity = select( max_sd + 1, &readfds, NULL, NULL, NULL );
+		struct timeval timeout = { .tv_sec = 1L, .tv_usec = 0L };
+		activity = select( max_sd + 1, &readfds, NULL, NULL, &timeout );
 		if( activity < 0 && errno != EINTR )
 		{
 			printf("E select error\n");

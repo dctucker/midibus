@@ -9,6 +9,7 @@ struct output_device_t {
 		snd_rawmidi_t *midi;
 		snd_rawmidi_t *midi_out;
 	};
+	unsigned char status;
 	snd_rawmidi_t *midi_in_exclusive;
 	const char *port_name;
 };

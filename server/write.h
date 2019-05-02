@@ -8,7 +8,10 @@
 #define MASK_RT    (1 << 21)
 #define MASK_ALL   (0x1fffe)
 
-#define FILTER_CALLBACK(__name__) int __name__ (struct write_data *data, union write_args_t *args, unsigned char *buf, int n_bytes)
+#define FILTER_CALLBACK(__name__) int callback_##__name__ (struct write_data *data, union write_args_t *args, unsigned char *buf, int n_bytes, unsigned char *out_buf)
+#define FILTER_SETUP(__name__) void setup_##__name__ ( struct write_callback_t *callback, const char *args_name )
+#define Q(x) #x
+#define FILTER_MAP(__name__) { Q(__name__) , callback_##__name__,     setup_##__name__ }
 
 union write_args_t {
 	void *pointer;
@@ -22,11 +25,15 @@ union write_args_t {
 		unsigned char channel;
 		char out_cc[128];
 	} ccmap;
+	struct ccmap_status_data_t {
+		char out_status[128];
+	} status;
 };
 
 struct write_callback_t {
 	int (*func)();
 	union write_args_t args;
+	unsigned char out_buf[BUFSIZE];
 };
 
 struct write_data {
@@ -38,7 +45,7 @@ struct write_data {
 	struct write_callback_t callbacks[8];
 };
 
-void parse_write_args( struct write_data *, struct write_callback_t *, const char * );
+void parse_write_args( struct write_callback_t *, const char * );
 struct write_callback_t *setup_write_func( struct write_data *, const char *func_name );
 void teardown_write_func( struct write_data * );
 void clear_write_data( struct write_data * );

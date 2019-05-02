@@ -4,62 +4,103 @@
 // Note Off could be sent as Note On Vel 0
 // Running status may need to be added when absent
 
-FILTER_CALLBACK(write_ccmap_filter)
+unsigned char scan_status( struct write_data *data, unsigned char status)
 {
-	snd_rawmidi_t *port = data->output_device->midi;
-	unsigned char out_buf[BUFSIZE];
-	int state = 0;
+	unsigned char *cur_status = &data->output_device->status;
+	if( status < 0x80 )
+		return *cur_status;
+	*cur_status = status;
+	return *cur_status;
+}
+
+FILTER_SETUP( ccmap )
+{
+	char* copy = strdup(args_name);
+	unsigned char in_cc;
+	char *pt;
+	if( callback->args.ccmap.out_cc[127] == 0 )
+		memset(callback->args.ccmap.out_cc, 0xff, 128);
+	pt = strtok(copy, ","); callback->args.ccmap.channel = strtoul( pt, NULL, 10 ) - 1;
+	pt = strtok(NULL, ","); in_cc = strtoul( pt, NULL, 16 );
+	pt = strtok(NULL, ","); callback->args.ccmap.out_cc[in_cc] = strtoul( pt, NULL, 16 );
+	printf("ccmap %d CC %d to %d",
+		callback->args.ccmap.channel,
+		in_cc,
+		callback->args.ccmap.out_cc[in_cc]
+	);
+	free(copy);
+}
+FILTER_CALLBACK( ccmap )
+{
 	unsigned char channel = args->ccmap.channel;
+	unsigned char cur_state;
+	unsigned char exp_state = 0xb0 + channel;
+	unsigned char cc = 0xff, val = 0xff;
 
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
-		if( state == 0 )
+		unsigned char cur_state = scan_status(data, buf[b]);
+		if( buf[b] == exp_state )
+			continue;
+
+		if( cur_state == exp_state )
 		{
-			if( buf[b] == 0xb0 + channel )
-			{
-				++state;
-			}
-			else if( buf[b] == 0x80 + channel || buf[b] == 0x90 + channel || buf[b] == 0xe0 + channel )
-			{
-				out_buf[a++] = buf[b];
-				state = 3;
-			}
-		}
-		else if( state == 1 )
-		{
-			char in_cc = buf[b] & 0x7f;
-			char out_cc = args->ccmap.out_cc[ in_cc ];
-			if( out_cc >= 0x00 && out_cc < 0x7f )
-			{
-				out_buf[a++] = buf[ b - 1 ];
-				out_buf[a++] = args->ccmap.out_cc[ in_cc ];
-				++state;
-			}
+			if(       cc == 0xff )  cc = buf[b];
+			else if( val == 0xff ) val = buf[b];
 			else
 			{
-				state = 0;
+				out_buf[a++] = cur_state;
+				out_buf[a++] = cc;
+				out_buf[a++] = val;
+				cc = 0xff;
+				val = 0xff;
 			}
 		}
-		else if( state == 2 )
-		{
-			out_buf[a++] = buf[b];
-			state = 0;
-		}
-		else if( state == 3 ) // note or pitch
-		{
-			out_buf[a++] = buf[b];
-			state = 2;
-		}
-		
 	}
-	return write_buffer( port, out_buf, a );
+	return write_buffer( data->output_device->midi, out_buf, a );
 }
 
-FILTER_CALLBACK( write_funnel_filter )
+FILTER_SETUP( status )
+{
+	char* copy = strdup(args_name);
+	char *pt;
+	printf("status", args_name);
+
+	pt = strtok(copy, ",");
+	while (pt != NULL)
+	{
+		unsigned char a = strtoul( pt, NULL, 16 );
+		callback->args.status.out_status[ a - 0x80 ] = a;
+		printf(" 0x%X", a);
+		pt = strtok(NULL, ",");
+	}
+	free(copy);
+}
+FILTER_CALLBACK( status )
+{
+	unsigned char *out_status = args->status.out_status;
+
+	int a = 0;
+	for( int b = 0; b < n_bytes; ++b )
+	{
+		unsigned char cur_state = scan_status(data, buf[b]);
+		if( out_status[ cur_state - 0x80 ] == cur_state )
+		{
+			out_buf[a++] = buf[b];
+		}
+	}
+	return write_buffer( data->output_device->midi, out_buf, a );
+}
+
+FILTER_SETUP( funnel )
+{
+	callback->args.funnel.channel = atoi( args_name ) - 1 & 0x0f;
+	printf("funnel %s", args_name);
+}
+FILTER_CALLBACK( funnel )
 {
 	snd_rawmidi_t *port = data->output_device->midi;
-	unsigned char out_buf[BUFSIZE];
 	unsigned char target = (unsigned char) args->funnel.channel;
 	unsigned int mask = MASK_ALL; // any channel message is fine
 	unsigned int current_mask = 0;
@@ -69,6 +110,7 @@ FILTER_CALLBACK( write_funnel_filter )
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
+		unsigned char cur_state = scan_status(data, buf[b]);
 		if( buf[b] >= 0xf8 )
 			current_mask = MASK_RT;
 		else if( buf[b] >= 0xf0 )
@@ -94,10 +136,36 @@ FILTER_CALLBACK( write_funnel_filter )
 	return write_buffer( port, out_buf, a );
 }
 
-FILTER_CALLBACK(write_channel_filter)
+FILTER_SETUP( channel )
+{
+	unsigned int channel_mask = 0;
+	char* copy = strdup(args_name);
+	char *pt;
+	pt = strtok(copy, ",");
+	while (pt != NULL)
+	{
+		int a = atoi(pt);
+		if( a <= 0 )
+		{
+			if( strcmp(pt, "sysex") == 0 )
+				channel_mask |= MASK_SYSEX;
+			else if( strcmp(pt, "rt") == 0 )
+				channel_mask |= MASK_RT;
+			else if( strcmp(pt, "all") == 0 )
+				channel_mask |= MASK_ALL;
+		}
+		else
+			channel_mask |= 1 << a;
+
+		pt = strtok(NULL, ",");
+	}
+	callback->args.channel.mask = channel_mask;
+	printf("channel 0x%08X", channel_mask);
+	free(copy);
+}
+FILTER_CALLBACK( channel )
 {
 	snd_rawmidi_t *port = data->output_device->midi;
-	unsigned char out_buf[BUFSIZE];
 	unsigned int mask = (int) args->channel.mask;
 	unsigned int current_mask = 0;
 	if( data->output_device->midi_in_exclusive == data->midi_in )
@@ -106,6 +174,7 @@ FILTER_CALLBACK(write_channel_filter)
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
+		unsigned char cur_state = scan_status(data, buf[b]);
 		if( buf[b] >= 0xf8 )
 			current_mask = MASK_RT;
 		else if( buf[b] >= 0xf0 )
@@ -125,12 +194,16 @@ FILTER_CALLBACK(write_channel_filter)
 	return write_buffer( port, out_buf, a );
 }
 
-FILTER_CALLBACK( write_realtime )
+FILTER_SETUP( realtime )
 {
-	unsigned char out_buf[BUFSIZE];
+	printf("realtime", args_name);
+}
+FILTER_CALLBACK( realtime )
+{
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
+		unsigned char cur_state = scan_status(data, buf[b]);
 		if( buf[b] == 0xf0 )
 			data->output_device->midi_in_exclusive = data->midi_in;
 		else if( buf[b] == 0xf7 )
@@ -142,12 +215,22 @@ FILTER_CALLBACK( write_realtime )
 	return write_buffer( data->output_device->midi, out_buf, a );
 }
 
-FILTER_CALLBACK( write_thru )
+FILTER_SETUP( thru )
 {
+	printf("thru", args_name);
+}
+FILTER_CALLBACK( thru )
+{
+	for( int b = 0; b < n_bytes; ++b )
+		scan_status(data, buf[b]);
 	return write_buffer( data->output_device->midi, buf, n_bytes );
 }
 
-FILTER_CALLBACK( write_none )
+FILTER_SETUP( none )
+{
+	printf("none");
+}
+FILTER_CALLBACK( none )
 {
 	return 0;
 }
@@ -159,97 +242,63 @@ ssize_t write_buffer(snd_rawmidi_t *port, unsigned char *buf, size_t n_bytes)
 	ssize_t ret = snd_rawmidi_write( port, buf, n_bytes );
 	printf("O ");
 	for (int b = 0; b < n_bytes; ++b)
-		printf("%02X ", buf[b]);
+		printf("0x%02X ", buf[b]);
 	return n_bytes;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void parse_write_args( struct write_data *data, struct write_callback_t *callback, const char *args_name )
-{
-	if( callback->func == write_thru )
-	{
-		printf("W %s thru\n", data->port_name, args_name);
-	}
-	else if( callback->func == write_realtime )
-	{
-		printf("W %s realtime %s\n", data->port_name, args_name);
-	}
-	else if( callback->func == write_funnel_filter )
-	{
-		callback->args.funnel.channel = atoi( args_name ) - 1 & 0x0f;
-		printf("W %s funnel %s\n", data->port_name, args_name);
-	}
-	else if( callback->func == write_ccmap_filter )
-	{
-		char* copy = strdup(args_name);
-		unsigned char in_cc;
-		char *pt;
-		if( callback->args.ccmap.out_cc[127] == 0 )
-			memset(callback->args.ccmap.out_cc, 0xff, 128);
-		pt = strtok(copy, ","); callback->args.ccmap.channel = strtoul( pt, NULL, 10 ) - 1;
-		pt = strtok(NULL, ","); in_cc = strtoul( pt, NULL, 16 );
-		pt = strtok(NULL, ","); callback->args.ccmap.out_cc[in_cc] = strtoul( pt, NULL, 16 );
-		printf("W %s ccmap %d CC %d to %d\n",
-			data->port_name,
-			callback->args.ccmap.channel,
-			in_cc,
-			callback->args.ccmap.out_cc[in_cc]
-		);
-		free(copy);
-	}
-	else if( callback->func == write_channel_filter )
-	{
-		unsigned int channel_mask = 0;
-		char* copy = strdup(args_name);
-		char *pt;
-		pt = strtok(copy, ",");
-		while (pt != NULL)
-		{
-			int a = atoi(pt);
-			if( a <= 0 )
-			{
-				if( strcmp(pt, "sysex") == 0 )
-					channel_mask |= MASK_SYSEX;
-				else if( strcmp(pt, "rt") == 0 )
-					channel_mask |= MASK_RT;
-				else if( strcmp(pt, "all") == 0 )
-					channel_mask |= MASK_ALL;
-			}
-			else
-				channel_mask |= 1 << a;
+struct write_func_map_t {
+	const char *name;
+	int (*callback)();
+	void (*setup)();
+} write_func_map[] = {
+	FILTER_MAP( thru ),
+	FILTER_MAP( realtime ),
+	FILTER_MAP( funnel ),
+	FILTER_MAP( ccmap ),
+	FILTER_MAP( channel ),
+	FILTER_MAP( status ),
+	{"", NULL, NULL}
+};
 
-			pt = strtok(NULL, ",");
-		}
-		callback->args.channel.mask = channel_mask;
-		printf("W %s channel %X\n", data->port_name, channel_mask);
-		free(copy);
-	}
-	else if( callback->func == write_none )
+void parse_write_args( struct write_callback_t *callback, const char *args_name )
+{
+	int f = 0;
+	do
 	{
-		printf("W none\n");
+		struct write_func_map_t *map = &write_func_map[f];
+		if( map->callback == callback->func )
+		{
+			map->setup( callback, args_name );
+			printf("\n");
+			return;
+		}
+		f++;
 	}
+	while( write_func_map[f].setup != NULL );
+	printf("\n");
 }
 
 int (*str_write_func( const char *func_name ))()
 {
-	if( strcmp(func_name, "thru") == 0 )
-		return write_thru;
-	else if( strcmp(func_name, "realtime") == 0 )
-		return write_realtime;
-	else if( strcmp(func_name, "funnel") == 0 )
-		return write_funnel_filter;
-	else if( strcmp(func_name, "ccmap") == 0 )
-		return write_ccmap_filter;
-	else if( strcmp(func_name, "channel") == 0 )
-		return write_channel_filter;
-	else
-		return write_none;
+	int f = 0;
+	do
+	{
+		struct write_func_map_t *map = &write_func_map[f];
+		if( strcmp(func_name, map->name) == 0 )
+			return map->callback;
+		f++;
+	}
+	while( write_func_map[f].callback != NULL );
+	return callback_none;
 }
 
 struct write_callback_t *setup_write_func( struct write_data *data, const char *func_name )
 {
 	int (*func)() = str_write_func( func_name );
+
+	printf("W %s ", data->port_name);
 
 	struct write_callback_t *callback = data->callbacks;
 	for( int c = 0; c < MAX_CALLBACKS; c++ )

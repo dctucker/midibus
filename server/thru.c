@@ -129,7 +129,7 @@ void *read_thread(void *arg)
 				struct write_callback_t *callback = &out->callbacks[c];
 				if( callback->func == NULL )
 					continue;
-				int res = callback->func( out, &(callback->args), buf, err );
+				int res = callback->func( out, &(callback->args), buf, err, &(callback->out_buf) );
 				if( res > 0 )
 					printf("%s\n", out->port_name);
 				else if( res < 0 )
