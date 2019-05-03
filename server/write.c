@@ -32,30 +32,38 @@ FILTER_SETUP( ccmap )
 }
 FILTER_CALLBACK( ccmap )
 {
-	unsigned char channel = args->ccmap.channel;
 	unsigned char cur_state;
-	unsigned char exp_state = 0xb0 + channel;
+	unsigned char exp_state = 0xb0 + args->ccmap.channel;
 	unsigned char cc = 0xff, val = 0xff;
 
 	int a = 0;
 	for( int b = 0; b < n_bytes; ++b )
 	{
 		unsigned char cur_state = scan_status(data, buf[b]);
-		if( buf[b] == exp_state )
-			continue;
-
-		if( cur_state == exp_state )
+		if( cur_state == exp_state && buf[b] < 0x80 )
 		{
-			if(       cc == 0xff )  cc = buf[b];
-			else if( val == 0xff ) val = buf[b];
-			else
+			if( cc == 0xff )
 			{
-				out_buf[a++] = cur_state;
-				out_buf[a++] = cc;
-				out_buf[a++] = val;
-				cc = 0xff;
-				val = 0xff;
+				unsigned char out_cc = args->ccmap.out_cc[ buf[b] ];
+				cc = out_cc < 0x80 ? out_cc : 0xfe;
 			}
+			else if( val == 0xff )
+			{
+				if( cc < 0x80 )
+				{
+					val = buf[b];
+					out_buf[a++] = exp_state;
+					out_buf[a++] = cc;
+					out_buf[a++] = val;
+				}
+				val = 0xff;
+				cc = 0xff;
+			}
+		}
+		else
+		{
+			cc = 0xff;
+			val = 0xff;
 		}
 	}
 	return write_buffer( data->output_device->midi, out_buf, a );

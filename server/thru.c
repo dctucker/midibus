@@ -111,7 +111,7 @@ void *read_thread(void *arg)
 
 		printf("I ");
 		for (i = 0; i < err; ++i)
-			printf("%02X ", buf[i]);
+			printf("0x%02X ", buf[i]);
 		printf("%s\n", data->port_name);
 
 		for( int o = 0; o < data->n_outs; ++o )
