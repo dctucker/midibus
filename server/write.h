@@ -8,11 +8,6 @@
 #define MASK_RT    (1 << 21)
 #define MASK_ALL   (0x1fffe)
 
-#define FILTER_CALLBACK(__name__) int callback_##__name__ (struct write_data *data, union write_args_t *args, unsigned char *buf, int n_bytes, unsigned char *out_buf)
-#define FILTER_SETUP(__name__) void setup_##__name__ ( struct write_callback_t *callback, const char *args_name )
-#define Q(x) #x
-#define FILTER_MAP(__name__) { Q(__name__) , callback_##__name__,     setup_##__name__ }
-
 union write_args_t {
 	void *pointer;
 	struct channel_filter_data_t {
@@ -51,3 +46,4 @@ void teardown_write_func( struct write_data * );
 void clear_write_data( struct write_data * );
 ssize_t write_buffer(snd_rawmidi_t *, unsigned char *, size_t );
 int (*str_write_func( const char *func_name ))();
+
