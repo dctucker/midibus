@@ -1,6 +1,7 @@
 #pragma once
 
 #include <alsa/asoundlib.h>
+#include "macro.h"
 #include "write.h"
 #include "common.h"
 
@@ -19,6 +20,7 @@ struct read_thread_data {
 	size_t n_outs;
 	struct write_data outs[MAX_OUTS];
 	const char *port_name;
+	struct macro_listener_t macros[MAX_MACROS];
 };
 
 void manage_thread_outputs(struct read_thread_data *in);

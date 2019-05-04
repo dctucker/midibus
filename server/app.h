@@ -1,6 +1,7 @@
 #pragma once
 
 #include "thru.h"
+#include "macro.h"
 
 struct config_line {
 	const char in[MAX_STRING];
@@ -18,6 +19,7 @@ struct app_t {
 	struct read_thread_data read_data[MAX_THREADS];
 	struct output_device_t output_devices[MAX_OUTS];
 	struct config_line config[MAX_CONNECTIONS];
+	struct macro_data_t macros[MAX_MACROS];
 };
 extern struct app_t app;
 

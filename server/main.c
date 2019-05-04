@@ -2,7 +2,7 @@
 
 #include "main.h"
 
-void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args_name)
+void configure_midi_connection(const char *in_name, const char *out_name, const char *func_name, const char *args_name)
 {
 	//printf("R %s %s %s %s\n", in_name, out_name, func_name, args_name);
 	int i = 0;
@@ -38,12 +38,40 @@ void configure_connection(const char *in_name, const char *out_name, const char 
 	}
 }
 
+void configure_connection(const char *in_name, const char *out_name, const char *func_name, const char *args_name)
+{
+	bool server_in  = strcmp( SERVER, in_name  ) == 0;
+	bool server_out = strcmp( SERVER, out_name ) == 0;
+	const char *port_name;
+
+	if( server_in )
+	{
+		port_name = out_name;
+		if( strcmp( func_name, "macro" ) == 0 )
+		{
+			setup_macro( port_name, args_name );
+		}
+	}
+	else if( server_out )
+	{
+		port_name = in_name;
+		if( strcmp( func_name, "macro" ) == 0 )
+		{
+			add_macro_listener( port_name, args_name );
+		}
+	}
+	else
+	{
+		configure_midi_connection(in_name, out_name, func_name, args_name);
+	}
+}
+
 void load_config_file()
 {
 	FILE *fp = fopen("midi-server.conf","r");
 	printf("M midi-server.conf open\n");
 	int n = 0;
-	while( fscanf( fp, "%s %s %s %s", app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args) != EOF)
+	while( fscanf( fp, "%s\t%s\t%s\t%[^\n]", app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args) != EOF)
 	{
 		configure_connection(app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args);
 		n++;
@@ -133,6 +161,7 @@ void sigint_handler(int sig)
 
 int main(int argc, char **argv)
 {
+	memset( &app, 0, sizeof(app) );
 	stop_all = 0;
 
 	size_t bytes = sizeof(app);

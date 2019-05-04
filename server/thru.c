@@ -1,5 +1,7 @@
 #include "app.h"
 
+extern void hear_macro( struct macro_listener_t *, const char *, unsigned char *, size_t );
+
 void manage_thread_outputs(struct read_thread_data *in)
 {
 	if( in->midi == NULL )
@@ -136,6 +138,16 @@ void *read_thread(void *arg)
 					break;
 			}
 		}
+
+		for( int m = 0; m < MAX_MACROS; m++ )
+		{
+			if( data->macros[m].n_data > 0 )
+			{
+				hear_macro( &data->macros[m], data->port_name, buf, err );
+			}
+
+		}
+		//app.macros[m].port_name == 
 		fflush(stdout);
 	}
 	while( ! stop_all );

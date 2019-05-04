@@ -10,9 +10,12 @@
 #include "thru.h"
 #include "app.h"
 
+extern void run_macro( const char * );
+
 pthread_t thread;
 
 //struct sockaddr_un address;
+
 struct sockaddr_in address;
 size_t addrlen;
 int master_socket, client_socket, read_count;
@@ -204,6 +207,10 @@ void *socket_thread()
 					else if( strcmp( buffer, "devices\n" ) == 0 )
 					{
 						emit_devices();
+					}
+					else if( strncmp( "macro ", buffer, 6 ) == 0 )
+					{
+						run_macro( &buffer[6] );
 					}
 					else if( strcmp( buffer, "bye\n" ) == 0 )
 					{
