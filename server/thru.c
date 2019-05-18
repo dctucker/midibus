@@ -16,15 +16,15 @@ void manage_thread_outputs(struct read_thread_data *in)
 
 		// find named output in output_devices
 		int d = 0;
-		for(; d < app.n_output_devices; ++d )
+		for(; d < app->n_output_devices; ++d )
 		{
-			if( strcmp( app.output_devices[d].port_name, out->port_name ) == 0 )
+			if( strcmp( app->output_devices[d].port_name, out->port_name ) == 0 )
 			{
-				if( app.output_devices[d].midi != NULL )
+				if( app->output_devices[d].midi != NULL )
 				{
-					app.output_devices[d].midi_in_exclusive = NULL;
+					app->output_devices[d].midi_in_exclusive = NULL;
 					out->midi_in = in->midi;
-					out->output_device = &app.output_devices[d];
+					out->output_device = &app->output_devices[d];
 					printf("C %s -> %s\n", in->port_name, out->port_name);
 				}
 				break;
@@ -32,7 +32,7 @@ void manage_thread_outputs(struct read_thread_data *in)
 		}
 		/*
 		// in list but not opened yet
-		if( app.output_devices[d].midi == NULL )
+		if( app->output_devices[d].midi == NULL )
 		{
 			if( (err = snd_rawmidi_open(NULL, &out->midi, out->port_name, SND_RAWMIDI_APPEND | SND_RAWMIDI_NONBLOCK)) < 0 )
 			{
@@ -57,15 +57,15 @@ int setup_midi_device(struct read_thread_data *data)
 	}
 	printf("S %s\n", data->port_name);
 	int d = 0;
-	for(; d < app.n_output_devices; ++d )
-		if( strcmp( app.output_devices[d].port_name, data->port_name ) == 0 )
+	for(; d < app->n_output_devices; ++d )
+		if( strcmp( app->output_devices[d].port_name, data->port_name ) == 0 )
 			break;
-	if( d == app.n_output_devices )
+	if( d == app->n_output_devices )
 	{
-		app.output_devices[d].port_name = data->port_name;
-		app.n_output_devices++;
+		app->output_devices[d].port_name = data->port_name;
+		app->n_output_devices++;
 	}
-	app.output_devices[d].midi = midi_out;
+	app->output_devices[d].midi = midi_out;
 	manage_thread_outputs( data );
 	return 0;
 }
@@ -147,7 +147,7 @@ void *read_thread(void *arg)
 			}
 
 		}
-		//app.macros[m].port_name == 
+		//app->macros[m].port_name == 
 		fflush(stdout);
 	}
 	while( ! stop_all );

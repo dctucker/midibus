@@ -21,6 +21,6 @@ struct app_t {
 	struct config_line config[MAX_CONNECTIONS];
 	struct macro_data_t macros[MAX_MACROS];
 };
-extern struct app_t app;
+extern struct app_t *app;
 
 extern void error(const char *, ...);

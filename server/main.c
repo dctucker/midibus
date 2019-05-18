@@ -6,30 +6,30 @@ void configure_midi_connection(const char *in_name, const char *out_name, const 
 {
 	//printf("R %s %s %s %s\n", in_name, out_name, func_name, args_name);
 	int i = 0;
-	for(; i < app.n_read_threads; ++i )
-		if( strcmp( app.read_data[i].port_name, in_name ) == 0 )
+	for(; i < app->n_read_threads; ++i )
+		if( strcmp( app->read_data[i].port_name, in_name ) == 0 )
 			break;
-	if( i == app.n_read_threads )
+	if( i == app->n_read_threads )
 	{
-		app.n_read_threads++;
-		app.read_data[i].midi = NULL;
-		app.read_data[i].port_name = in_name;
+		app->n_read_threads++;
+		app->read_data[i].midi = NULL;
+		app->read_data[i].port_name = in_name;
 	}
 
 	int o = 0;
-	for(; o < app.read_data[i].n_outs; ++o )
-		if( strcmp( app.read_data[i].outs[o].port_name, out_name ) == 0 )
+	for(; o < app->read_data[i].n_outs; ++o )
+		if( strcmp( app->read_data[i].outs[o].port_name, out_name ) == 0 )
 			break;
-	struct write_data *data = &app.read_data[i].outs[o];
+	struct write_data *data = &app->read_data[i].outs[o];
 	struct write_callback_t *callback;
-	if( o == app.read_data[i].n_outs ) // new
+	if( o == app->read_data[i].n_outs ) // new
 	{
 		clear_write_data( data );
 		data->output_device = NULL;
 		data->port_name = out_name;
 		callback = setup_write_func( data, func_name );
 		parse_write_args( callback, args_name );
-		app.read_data[i].n_outs++;
+		app->read_data[i].n_outs++;
 	}
 	else
 	{
@@ -71,9 +71,9 @@ void load_config_file()
 	FILE *fp = fopen("midi-server.conf","r");
 	printf("M midi-server.conf open\n");
 	int n = 0;
-	while( fscanf( fp, "%s\t%s\t%s\t%[^\n]", app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args) != EOF)
+	while( fscanf( fp, "%s\t%s\t%s\t%[^\n]", app->config[n].in, app->config[n].out, app->config[n].func, app->config[n].args) != EOF)
 	{
-		configure_connection(app.config[n].in, app.config[n].out, app.config[n].func, app.config[n].args);
+		configure_connection(app->config[n].in, app->config[n].out, app->config[n].func, app->config[n].args);
 		n++;
 	}
 	fclose(fp);
@@ -88,24 +88,24 @@ void manage_inputs()
 	{
 		had_errors = 0;
 		int i = 0;
-		for(; i < app.n_read_threads; ++i )
+		for(; i < app->n_read_threads; ++i )
 		{
-			if( app.read_data[i].midi != NULL )
+			if( app->read_data[i].midi != NULL )
 				continue;
-			if( strlen(app.read_data[i].port_name) <= 0 )
+			if( strlen(app->read_data[i].port_name) <= 0 )
 				continue;
 			int result;
-			result = setup_midi_device( &app.read_data[i] );
-			if( result == 0 && app.read_data[i].midi != NULL )
+			result = setup_midi_device( &app->read_data[i] );
+			if( result == 0 && app->read_data[i].midi != NULL )
 			{
-				pthread_create( &app.threads[i], NULL, read_thread, (void *) &app.read_data[i] );
+				pthread_create( &app->threads[i], NULL, read_thread, (void *) &app->read_data[i] );
 			}
 			else
 			{
 				had_errors++;
 				if( tries == 4 )
 				{
-					printf("E %d %s \"%s\"\n", result, app.read_data[i].port_name, snd_strerror(result));
+					printf("E %d %s \"%s\"\n", result, app->read_data[i].port_name, snd_strerror(result));
 				}
 			}
 		}
@@ -119,18 +119,18 @@ void manage_inputs()
 
 void manage_outputs()
 {
-	for( int i = 0; i < app.n_read_threads; ++i )
+	for( int i = 0; i < app->n_read_threads; ++i )
 	{
-		manage_thread_outputs( &app.read_data[i] );
+		manage_thread_outputs( &app->read_data[i] );
 	}
 }
 
 void join_threads()
 {
 	printf("M join threads\n");
-	for( int i = 0; i < app.n_read_threads; ++i )
+	for( int i = 0; i < app->n_read_threads; ++i )
 	{
-		pthread_join( app.threads[i], NULL );
+		pthread_join( app->threads[i], NULL );
 	}
 }
 
@@ -161,10 +161,10 @@ void sigint_handler(int sig)
 
 int main(int argc, char **argv)
 {
-	memset( &app, 0, sizeof(app) );
+	size_t bytes = sizeof(*app);
+	memset( app, 0, bytes );
 	stop_all = 0;
 
-	size_t bytes = sizeof(app);
 	setlocale(LC_NUMERIC, "");
 	printf("M Hello. %'d bytes allocated to app.\n", bytes);
 

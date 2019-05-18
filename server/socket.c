@@ -50,15 +50,15 @@ void emit_config()
 	char *ptr = &out_buffer[0];
 
 	ptr += sprintf(ptr, "config");
-	for( int i = 0; i < app.n_read_threads; ++i )
+	for( int i = 0; i < app->n_read_threads; ++i )
 	{
-		for( int o = 0; o < app.read_data[i].n_outs; ++o )
+		for( int o = 0; o < app->read_data[i].n_outs; ++o )
 		{
 			ptr += sprintf(ptr, "\n%s\t%s\t%s\t%s",
-				app.read_data[i].port_name,
-				app.read_data[i].outs[o].port_name,
-				app.read_data[i].outs[o].func_name,
-				app.read_data[i].outs[o].args_name
+				app->read_data[i].port_name,
+				app->read_data[i].outs[o].port_name,
+				app->read_data[i].outs[o].func_name,
+				app->read_data[i].outs[o].args_name
 			);
 		}
 	}
@@ -71,11 +71,11 @@ void emit_devices()
 	char *ptr = &out_buffer[0];
 
 	ptr += sprintf(ptr, "devices");
-	for( int i = 0; i < app.n_read_threads; ++i )
+	for( int i = 0; i < app->n_read_threads; ++i )
 	{
-		if( app.read_data[i].midi != NULL )
+		if( app->read_data[i].midi != NULL )
 		{
-			ptr += sprintf(ptr, "\n%s", app.read_data[i].port_name);
+			ptr += sprintf(ptr, "\n%s", app->read_data[i].port_name);
 		}
 	}
 	*ptr = '\0';

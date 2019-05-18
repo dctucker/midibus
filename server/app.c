@@ -1,6 +1,7 @@
 #include "app.h"
 
-struct app_t app;
+struct app_t _app;
+struct app_t *app = &_app;
 
 void error(const char *format, ...)
 {
