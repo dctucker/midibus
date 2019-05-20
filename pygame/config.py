@@ -6,6 +6,8 @@ class Config:
 		s.connected = []
 		s.client = client
 
+		#s.devices = [CharStar(d.port_name) for d in app.read_data if d.midi != ffi.NULL]
+
 		s.client.callbacks['config'] = s.config_callback
 		s.client.get_config()
 		s.client.select()

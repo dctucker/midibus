@@ -2,34 +2,6 @@ import mmap
 from cffi import FFI
 from posix_ipc import SharedMemory
 
-shm = SharedMemory("/midi-server", 0, 0644, 0, True)
-mem = mmap.mmap(shm.fd, shm.size, mmap.MAP_SHARED, mmap.PROT_READ)
-
-headers = ""
-for obj in ['common','thru','write','app','macro']:
-	with open('../server/'+obj+'.h') as f:
-		header = ""
-		for line in f.readlines():
-			if line.startswith("#include "):
-				continue
-			if line.startswith("#define MASK_"):
-				continue
-			header += line + "\n"
-		headers += header
-
-"""
-pthread_t from arm-linux-gnueabihf/bits/pthreadtypes.h
-"""
-
-ffi = FFI()
-ffi.cdef("""
-typedef unsigned long int pthread_t;
-typedef struct _snd_rawmidi snd_rawmidi_t;
-""" + headers)
-#ffi.set_source("_app", '#include "../server/app.h"')
-pointer = ffi.from_buffer(mem)
-app = ffi.cast("struct app_t *", pointer)
-
 class Struct:
 	def __init__(s, data):
 		s.data = data
@@ -63,9 +35,39 @@ class CharStar:
 	def __init__(s, data):
 		s.data = data
 	def __str__(s):
-		s = pointer + int(ffi.cast("intptr_t", app.output_devices[0].port_name)) - app.base
-		return ffi.string(s)
+		if s.data != ffi.NULL:
+			s = pointer + int(ffi.cast("intptr_t", s.data)) - app.base
+			return ffi.string(s)
 	def __repr__(s):
+		if s.data == ffi.NULL:
+			return 'None'
 		return str(s).__repr__()
 
+ffi = FFI()
+
+def setup_ffi():
+	headers = ""
+	for obj in ['common','thru','write','app','macro']:
+		with open('../server/'+obj+'.h') as f:
+			header = ""
+			for line in f.readlines():
+				if line.startswith("#include "):
+					continue
+				if line.startswith("#define MASK_"):
+					continue
+				header += line + "\n"
+			headers += header
+	#pthread_t from arm-linux-gnueabihf/bits/pthreadtypes.h
+	ffi.cdef("""
+	typedef unsigned long int pthread_t;
+	typedef struct _snd_rawmidi snd_rawmidi_t;
+	""" + headers)
+	#ffi.set_source("_app", '#include "../server/app.h"')
+
+setup_ffi()
+shm = SharedMemory("/midi-server", 0, 0644, 0, True)
+mem = mmap.mmap(shm.fd, shm.size, mmap.MAP_SHARED, mmap.PROT_READ)
+
+pointer = ffi.from_buffer(mem)
+app = ffi.cast("struct app_t *", pointer)
 
