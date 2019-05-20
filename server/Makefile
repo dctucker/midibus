@@ -5,7 +5,7 @@ ODIR = obj
 
 CC=gcc
 CFLAGS=-I$(IDIR) -g
-LIBS=-lasound -lpthread
+LIBS=-lasound -lpthread -lrt
 
 all: midi-server
 

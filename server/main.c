@@ -161,12 +161,7 @@ void sigint_handler(int sig)
 
 int main(int argc, char **argv)
 {
-	size_t bytes = sizeof(*app);
-	memset( app, 0, bytes );
-	stop_all = 0;
-
-	setlocale(LC_NUMERIC, "");
-	printf("M Hello. %'d bytes allocated to app.\n", bytes);
+	init_app();
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGHUP, sighup_handler);

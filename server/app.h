@@ -12,6 +12,7 @@ struct config_line {
 extern struct config_line config[MAX_CONNECTIONS];
 
 struct app_t {
+	size_t base;
 	pthread_t threads[MAX_THREADS];
 
 	int n_read_threads;
@@ -24,3 +25,4 @@ struct app_t {
 extern struct app_t *app;
 
 extern void error(const char *, ...);
+extern void init_app();
