@@ -1,4 +1,4 @@
-from shm import ffi
+from shm import ffi, CharStar
 
 class Config:
 	def __init__(s):
@@ -57,8 +57,8 @@ class ShmConfig(Config):
 		s.devices = []
 		ins  = [ strattr(line, 'in')  for line in s.app.config ]
 		outs = [ strattr(line, 'out') for line in s.app.config ]
-		[s.devices.append(x) for x in ins+outs if x not in s.devices and x != '']
+		[ s.devices.append(x) for x in ins+outs if x not in s.devices and x != '' ]
 
-		s.connections = filter(lambda x: x != ('','','',''), [ tuple([ffi.string(v) for v in line.line]) for line in s.app.config])
-		s.connected = [str(CharStar(d.port_name)) for d in s.app.read_data if d.midi != ffi.NULL]
+		s.connections = filter( lambda x: x != ('','','',''), [ tuple([ ffi.string(v) for v in line.line ]) for line in s.app.config ])
+		s.connected = [ str(CharStar(d.port_name)) for d in s.app.read_data if d.midi != ffi.NULL ]
 

@@ -2,7 +2,8 @@
 
 import pygame, time, os, logging
 from client import Client
-from config import Config
+from config import ShmConfig
+from shm import app
 
 os.putenv('SDL_VIDEODRIVER', 'fbcon')
 os.putenv('SDL_FBDEV', '/dev/fb0')
@@ -202,7 +203,7 @@ class DeviceMatrix:
 screen.blit(bgimage, bgrect)
 #KeysScreen().draw()
 client = Client()
-config = Config(client)
+config = ShmConfig(app)
 matrix = DeviceMatrix(config)
 
 matrix.draw()
