@@ -60,6 +60,6 @@ class ShmConfig(Config):
 		all_devs = filter(lambda x: x not in ('','server'), ins + outs)
 		[s.devices.append(x) for x in all_devs if x not in s.devices]
 
-		s.connections = filter(lambda x: x != ('','','',''), [ tuple([strattr(line, x) for x in ['in','out','func','args']]) for line in s.app.config ])
+		s.connections = filter(lambda x: x != ('','','',''), [ tuple([ffi.string(v) for v in line.line]) for line in s.app.config])
 		s.connected = [str(CharStar(d.port_name)) for d in s.app.read_data if d.midi != ffi.NULL]
 

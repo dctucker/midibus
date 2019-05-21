@@ -4,10 +4,15 @@
 #include "macro.h"
 
 struct config_line {
-	const char in[MAX_STRING];
-	const char out[MAX_STRING];
-	const char func[MAX_STRING];
-	const char args[MAX_STRING];
+	union {
+		const char line[4][MAX_STRING];
+		struct {
+			const char in[MAX_STRING];
+			const char out[MAX_STRING];
+			const char func[MAX_STRING];
+			const char args[MAX_STRING];
+		};
+	};
 };
 extern struct config_line config[MAX_CONNECTIONS];
 
