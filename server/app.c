@@ -43,7 +43,7 @@ void init_app()
 	}
 
 	memset( app, 0, bytes );
-	app->base = (size_t) app;
+	app->base = (intptr_t) app;
 	stop_all = 0;
 
 	setlocale(LC_NUMERIC, "");

@@ -25,8 +25,12 @@ class Array:
 		a = []
 		ret = str(s.data) + " "
 		for v in s.data:
-			if ffi.typeof(v).cname.startswith('char'):
-				v = ffi.string(v)
+			if isinstance(v, ffi.CData):
+				cname = ffi.typeof(v).cname
+				if cname.startswith('char *'):
+					v = CharStar(v)
+				elif cname.startswith('char'):
+					v = ffi.string(v)
 			a += [v]
 		ret += str(a)
 		return ret
