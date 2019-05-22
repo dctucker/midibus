@@ -62,3 +62,6 @@ class ShmConfig(Config):
 		s.connections = filter( lambda x: x != ('','','',''), [ tuple([ ffi.string(v) for v in line.line ]) for line in s.app.config ])
 		s.connected = [ str(CharStar(d.port_name)) for d in s.app.read_data if d.midi != ffi.NULL ]
 
+	def callback(s, data):
+		s.load()
+

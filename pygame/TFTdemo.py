@@ -204,8 +204,11 @@ screen.blit(bgimage, bgrect)
 #KeysScreen().draw()
 client = Client()
 config = ShmConfig(app)
-matrix = DeviceMatrix(config)
 
+client.callbacks['config'] = config.callback
+client.callbacks['devices'] = config.callback
+
+matrix = DeviceMatrix(config)
 matrix.draw()
 pygame.display.flip()
 
