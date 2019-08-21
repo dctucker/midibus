@@ -168,11 +168,13 @@ int main(int argc, char **argv)
 	//signal(SIGCHLD, sigchld_handler);
 
 	pthread_t *socket_thread = setup_socket();
+	pthread_t *osc_thread = setup_osc();
 	load_config_file();
 
 	manage_inputs();
 	manage_outputs();
 	printf("M idle loop\n");
+
 
 	do // idle
 		sleep(1);
@@ -183,6 +185,7 @@ int main(int argc, char **argv)
 	printf("M exit\n");
 
 	stop_all = 1;
+	pthread_join( *osc_thread, NULL );
 	pthread_join( *socket_thread, NULL );
 
 	return EXIT_SUCCESS;

@@ -5,7 +5,7 @@ ODIR = obj
 
 CC=gcc
 CFLAGS=-I$(IDIR) -g
-LIBS=-lasound -lpthread -lrt
+LIBS=-lasound -lpthread -lrt -llo
 
 all: midi-server ../pygame/app.pyc
 

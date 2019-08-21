@@ -9,6 +9,7 @@
 #include "app.h"
 #include "macro.h"
 #include "socket.h"
+#include "osc.h"
 #include "write.h"
 #include "thru.h"
 
