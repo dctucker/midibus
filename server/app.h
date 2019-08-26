@@ -5,12 +5,18 @@
 
 struct config_line {
 	union {
-		const char line[4][MAX_STRING];
+		const char line [4][MAX_STRING];
 		struct {
-			const char in[MAX_STRING];
-			const char out[MAX_STRING];
+			const char in  [MAX_STRING];
+			const char out [MAX_STRING];
 			const char func[MAX_STRING];
 			const char args[MAX_STRING];
+		};
+		struct {
+			const char port[MAX_STRING];
+			const char ccc [MAX_STRING];
+			const char path[MAX_STRING];
+			const char vals[MAX_STRING];
 		};
 	};
 };

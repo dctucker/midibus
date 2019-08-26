@@ -25,4 +25,4 @@ midi-server: $(OBJ)
 
 clean:
 	rm -f $(OBJ) midi-server
-	rm ../pygame/app.py*
+	rm -f ../pygame/app.py*

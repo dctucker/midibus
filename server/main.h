@@ -14,3 +14,4 @@
 #include "thru.h"
 
 #define SERVER "server"
+#define OSC    "osc"
