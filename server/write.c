@@ -1,11 +1,12 @@
 #include "write.h"
 #include "thru.h"
+#include "funcmap.h"
 #include "filters/filters.h"
 
 // Note Off could be sent as Note On Vel 0
 // Running status may need to be added when absent
 
-extern struct write_func_map_t write_func_map[];
+extern struct func_map_t write_func_map[];
 
 unsigned char scan_status( struct write_data *data, unsigned char status)
 {
@@ -32,7 +33,7 @@ void parse_write_args( struct write_callback_t *callback, const char *args_name 
 	int f = 0;
 	do
 	{
-		struct write_func_map_t *map = &write_func_map[f];
+		struct func_map_t *map = &write_func_map[f];
 		if( map->callback == callback->func )
 		{
 			map->setup( callback, args_name );
@@ -47,16 +48,7 @@ void parse_write_args( struct write_callback_t *callback, const char *args_name 
 
 int (*str_write_func( const char *func_name ))()
 {
-	int f = 0;
-	do
-	{
-		struct write_func_map_t *map = &write_func_map[f];
-		if( strcmp(func_name, map->name) == 0 )
-			return map->callback;
-		f++;
-	}
-	while( write_func_map[f].callback != NULL );
-	return callback_none;
+	return str_func( write_func_map, func_name );
 }
 
 struct write_callback_t *setup_write_func( struct write_data *data, const char *func_name )

@@ -157,6 +157,7 @@ void *socket_thread()
 		// check for activity on master for new connections
 		if( FD_ISSET( master_socket, &readfds ) )
 		{
+			// TODO make this non-blocking
 			if( (client_socket = accept( master_socket, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0 )
 			{
 				perror("E accept");

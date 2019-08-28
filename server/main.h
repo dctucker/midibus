@@ -9,9 +9,9 @@
 #include "app.h"
 #include "macro.h"
 #include "socket.h"
-#include "osc.h"
 #include "write.h"
 #include "thru.h"
+#include "osc.h"
 
 #define SERVER "server"
 #define OSC    "osc"

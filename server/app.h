@@ -14,9 +14,9 @@ struct config_line {
 		};
 		struct {
 			const char port[MAX_STRING];
-			const char ccc [MAX_STRING];
-			const char path[MAX_STRING];
+			const char oscf[MAX_STRING];
 			const char vals[MAX_STRING];
+			const char path[MAX_STRING];
 		};
 	};
 };
