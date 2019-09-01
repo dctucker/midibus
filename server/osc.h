@@ -33,5 +33,7 @@ struct osc_map {
 OSC_DEF( cc );
 OSC_DEF( sw );
 OSC_DEF( xy );
+OSC_DEF( note );
+OSC_DEF( sysex );
 OSC_DEF( none );
 

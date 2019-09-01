@@ -7,14 +7,16 @@ struct func_map_t osc_func_map[] =
 	OSC_MAP( cc ),
 	OSC_MAP( sw ),
 	OSC_MAP( xy ),
+	OSC_MAP( note ),
+	OSC_MAP( sysex ),
 	{"", osc_callback_none, NULL}
 };
 
 pthread_t osc_thread;
 
 lo_server_thread osc_server;
-struct config_line osc_config[256];
-struct osc_map osc_maps[256];
+struct config_line osc_config[1024];
+struct osc_map osc_maps[1024];
 int num_maps = 0;
 
 void osc_error(int num, const char *msg, const char *path)
@@ -68,19 +70,93 @@ OSC_CALLBACK( xy )
 {
 	struct osc_map *map = user_data;
 	float arg = argv[0]->f;
-	unsigned short int value = argv[1]->f * 16384;
-	char data[7] = {
-		0xb0 | ( map->ch & 0x0f ),
-		map->values[1],
-		(value >> 7) & 0x7f,
-		map->values[2],
-		(value >> 0) & 0x7f,
-		map->values[3],
-		argv[0]->f * 127.0,
-	};
-	printf("V %i %i %i %i %i %i %i\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
+	unsigned short int y = argv[0]->f * 16383;
+	unsigned short int x = argv[1]->f * 16383;
+	char data[9];
+	int i = 0;
 
-	osc_send_midi( map->port_name, data, 7 );
+	// x msb, lsb
+	data[i++] = 0xb0 | ( map->ch & 0x0f );
+	data[i++] = map->values[1];
+	data[i++] = (x >> 7) & 0x7f;
+	if( map->values[2] != -1 )
+	{
+		data[i++] = map->values[2];
+		data[i++] = (x >> 0) & 0x7f;
+	}
+
+	// y msb, lsb
+	data[i++] = map->values[3];
+	data[i++] = (y >> 7) & 0x7f;
+	if( map->values[4] != -1 )
+	{
+		data[i++] = map->values[4];
+		data[i++] = (y >> 0) & 0x7f;
+	}
+	printf("V xy %i %i %i %i %i %i %i\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6]);
+
+	osc_send_midi( map->port_name, data, i );
+	fflush(stdout);
+	return 0;
+}
+
+OSC_SETUP( note )
+{
+}
+OSC_CALLBACK( note )
+{
+	struct osc_map *map = user_data;
+	float arg = argv[0]->f;
+	//int value = map->values[2];
+	int value = 127;
+
+	printf("V note port=%s cc=%d f=%f", map->port_name, map->cc, arg);
+
+
+	printf(" v=%d", value);
+	printf("\n");
+
+	char data[6];
+	size_t n_data = 3;
+	data[0] = ( argv[0]->i == 0 ? 0x80 : 0x90 ) | ( map->ch & 0x0f );
+	data[1] = map->cc & 0x7f;
+	data[2] = value & 0x7f;
+
+	osc_send_midi( map->port_name, data, n_data );
+	fflush(stdout);
+	return 0;
+}
+
+OSC_SETUP( sysex )
+{
+}
+OSC_CALLBACK( sysex )
+{
+	struct osc_map *map = user_data;
+	float arg = argv[0]->f;
+	//int value = map->values[2];
+	int value = 127;
+
+	printf("V note port=%s cc=%d f=%f", map->port_name, map->cc, arg);
+
+	if( argv[0]->i == 0 )
+	{
+		printf("\n");
+		return 0;
+	}
+
+	printf("\n");
+
+	char data[34];
+	data[0] = 0xf0;
+	int n = 0;
+	for( ; data[n] != 0xff && n < 32; n++ )
+	{
+		data[n+1] = map->values[n];
+	}
+	data[n++] = 0xf7;
+
+	osc_send_midi( map->port_name, data, n );
 	fflush(stdout);
 	return 0;
 }
@@ -94,7 +170,14 @@ OSC_CALLBACK( sw )
 	float arg = argv[0]->f;
 	int value = map->values[2];
 
-	printf("V port=%s cc=%d f=%f", map->port_name, map->cc, arg);
+	printf("V sw port=%s cc=%d f=%f", map->port_name, map->cc, arg);
+
+	if( argv[0]->i == 0 )
+	{
+		printf("\n");
+		return 0;
+	}
+
 	printf(" v=%d", value);
 	printf("\n");
 
@@ -143,8 +226,7 @@ void osc_setup_handler(const char *port_name, const char *oscf, const char *vals
 	assigns = sscanf( vals, "%hhi,%hhi", &map->ch, &map->cc );
 	int (*callback)() = str_func( osc_func_map, oscf );
 	map->ch -= 1;
-	map->values[0] = 0xff;
-	printf("V %s %s %d %d %d", map->port_name, oscf, map->ch, map->cc_msb, map->cc_lsb);
+	printf("V setup %s %s@%x", map->port_name, oscf, callback);
 
 	int n = 0;
 	char *copy = strdup(vals);
@@ -157,6 +239,7 @@ void osc_setup_handler(const char *port_name, const char *oscf, const char *vals
 		n++;
 		pt = strtok( NULL, "," );
 	}
+	map->values[n] = 0xff;
 	printf("\n");
 	free(copy);
 	lo_server_thread_add_method(osc_server, path, NULL, callback, map);
@@ -166,6 +249,7 @@ void osc_setup_handlers()
 {
 	unsigned int n = 0;
 	FILE *fp = fopen("osc.conf","r");
+	lo_server_thread_add_method(osc_server, NULL, NULL, osc_default_handler, NULL);
 	while( fscanf( fp, "%s\t%s\t%s\t%[^\n]", osc_config[n].port, osc_config[n].oscf, osc_config[n].vals, osc_config[n].path) != EOF)
 	{
 		osc_setup_handler(osc_config[n].port, osc_config[n].oscf, osc_config[n].vals, osc_config[n].path);
@@ -174,11 +258,17 @@ void osc_setup_handlers()
 	fclose(fp);
 }
 
+void osc_callback(const char *port_name, char *data, size_t data_len)
+{
+	printf("OSC got %s\n", port_name);
+
+}
+
 void *osc_run()
 {
 	osc_server = lo_server_thread_new(OSC_PORT_STR, osc_error);
-	lo_server_thread_add_method(osc_server, NULL, NULL, osc_default_handler, NULL);
 	osc_setup_handlers();
+	app->osc_callback = osc_callback;
 
 	printf("N osc server listening on %s\n", OSC_PORT_STR);
 	lo_server_thread_start(osc_server);

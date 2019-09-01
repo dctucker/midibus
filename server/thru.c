@@ -116,6 +116,8 @@ void *read_thread(void *arg)
 			printf("0x%02X ", buf[i]);
 		printf("%s\n", data->port_name);
 
+		app->osc_callback( data->port_name, buf, err );
+
 		for( int o = 0; o < data->n_outs; ++o )
 		{
 			struct write_data *out = &data->outs[o];

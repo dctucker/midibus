@@ -32,6 +32,7 @@ struct app_t {
 	struct output_device_t output_devices[MAX_OUTS];
 	struct config_line config[MAX_CONNECTIONS];
 	struct macro_data_t macros[MAX_MACROS];
+	void (*osc_callback)();
 };
 extern struct app_t *app;
 
