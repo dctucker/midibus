@@ -1,0 +1,13 @@
+[package]
+name = "midi-server"
+version = "0.1.0"
+authors = ["Casey Tucker <dctucker@hotmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+alsa = "0.3"
+csv = "1.0"
