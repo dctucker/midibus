@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use std::collections::{HashMap,HashSet};
+use std::collections::HashMap;
 use crate::config::{Config};
 use crate::thru::ReadThread;
 use crate::thru::OutputDevice;
@@ -8,6 +8,7 @@ use crate::r#macro::MacroData;
 type ReadThreadMap = HashMap<String,ReadThread>;
 type OutputDeviceMap = HashMap<String,Rc<OutputDevice>>;
 
+#[derive(Debug)]
 pub struct App {
 	pub read_threads : ReadThreadMap,
 	pub output_devices : OutputDeviceMap,

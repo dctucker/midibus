@@ -33,13 +33,17 @@ impl OutputDevice {
 	}
 }
 
-
 pub struct ReadThread {
 	handle : JoinHandle<()>,
-    midi : Option<Rawmidi>,
-    port_name : String,
-    outs : Vec<WriteData>,
-    macros : Vec<MacroListener>
+	midi : Option<Rawmidi>,
+	port_name : String,
+	outs : Vec<WriteData>,
+	macros : Vec<MacroListener>
+}
+impl fmt::Debug for ReadThread {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "ReadThread {{ port_name: {}, outs: {:#?}, macros: {:#?} }}", self.port_name, self.outs, self.macros)
+	}
 }
 
 impl ReadThread {
@@ -69,6 +73,6 @@ impl ReadThread {
 			}
 		}
 		self.outs.push( WriteData::new(out, func, args) );
-		//println!("{:?}", self.outs);
+		//self.println!("{:?}", self.outs);
 	}
 }
