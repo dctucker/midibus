@@ -7,6 +7,7 @@ mod thru;
 mod r#macro;
 mod devices;
 mod write;
+mod filters;
 
 fn main() {
 	let mut app = app::App::new();
@@ -18,5 +19,6 @@ fn main() {
 
 	if false { devices::main() }
 
+	println!("{:#?}", app);
 	app.join();
 }
