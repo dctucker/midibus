@@ -61,7 +61,13 @@ impl ReadThread {
 	pub fn join(self) {
 		self.handle.join().unwrap();
 	}
-	pub fn attach(&mut self, out : Rc<OutputDevice>, func : String, args : String) {
+	pub fn setup_write(&mut self, out : Rc<OutputDevice>, func : String, args : String) {
+		for mut wd in &mut self.outs {
+			if wd.func_name == func && wd.output_device.port_name == out.port_name {
+				wd.add_args();
+				return
+			}
+		}
 		self.outs.push( WriteData::new(out, func, args) );
 		//println!("{:?}", self.outs);
 	}
