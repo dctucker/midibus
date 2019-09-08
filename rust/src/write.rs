@@ -1,39 +1,53 @@
+use std::rc::Rc;
+use alsa::rawmidi::Rawmidi;
+use crate::thru::OutputDevice;
 
 enum WriteArgs {
-	struct ChannelFilterData {
+	ChannelFilterData {
 		mask : u32,
-	}
-	struct FunnelFilterData {
+	},
+	FunnelFilterData {
 		channel : u8,
-	}
-	struct CCMapFilterData {
+	},
+	CCMapFilterData {
 		channel : u8,
 		out_cc : Vec<u8>,
-	}
-	struct CCMapStatusData {
+	},
+	CCMapStatusData {
 		out_status : Vec<u8>,
-	}
-}
-
-trait WriteCallbackFn {
-	fn callback(write_data : &WriteData, args &WriteArgs, &buf : Vec<u8>, &out_buf : Vec<u8>) -> usize;
+	},
 }
 
 struct WriteCallback {
-	WriteArgs args;
-	out_buf Vec<u8>;
+	args : WriteArgs,
+	out_buf : Vec<u8>,
+}
+
+trait WriteCallbackFn {
+	fn callback(write_data : WriteData, buf : &Vec<u8>) -> usize;
 }
 
 impl WriteCallbackFn for WriteCallback {
-	fn callback(write_data : &WriteData, &buf : Vec<u8>) -> usize {
-	}
+	fn callback(write_data : WriteData, buf : &Vec<u8>) -> usize { 0 }
 }
 
-struct WriteData {
-	output_device : OutputDevice,
-	midi_in : Rawmidi,
-	port_name : String,
-	func_name : String,
-	args_name : String,
+#[derive(Debug)]
+pub struct WriteData {
+	output_device : Rc<OutputDevice>,
+	func: String,
+	args: String,
+	/*
+	midi_in : Option<Rawmidi>,
 	callbacks : Vec<WriteCallback>,
+	*/
+}
+
+impl WriteData {
+	pub fn new(out: Rc<OutputDevice>, func : String, args : String) -> WriteData {
+		WriteData {
+			output_device: out,
+			func: func,
+			args: args,
+		}
+	}
 }
