@@ -1,7 +1,9 @@
 use std::rc::Rc;
+use std::fmt;
 use alsa::rawmidi::Rawmidi;
 use crate::thru::OutputDevice;
 
+#[derive(Debug)]
 enum WriteArgs {
 	ChannelFilterData {
 		mask : u32,
@@ -18,9 +20,10 @@ enum WriteArgs {
 	},
 }
 
+#[derive(Debug)]
 struct WriteCallback {
-	args : WriteArgs,
-	out_buf : Vec<u8>,
+	name : String,
+	args : Option<WriteArgs>,
 }
 
 trait WriteCallbackFn {
@@ -31,23 +34,29 @@ impl WriteCallbackFn for WriteCallback {
 	fn callback(write_data : WriteData, buf : &Vec<u8>) -> usize { 0 }
 }
 
-#[derive(Debug)]
 pub struct WriteData {
-	output_device : Rc<OutputDevice>,
-	func: String,
+	pub output_device : Rc<OutputDevice>,
+	pub func_name: String,
 	args: String,
-	/*
 	midi_in : Option<Rawmidi>,
-	callbacks : Vec<WriteCallback>,
-	*/
+	callback : WriteCallback,
+}
+impl fmt::Debug for WriteData {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "WriteData: {}", self.func_name)
+	}
 }
 
 impl WriteData {
 	pub fn new(out: Rc<OutputDevice>, func : String, args : String) -> WriteData {
 		WriteData {
 			output_device: out,
-			func: func,
+			func_name: func.clone(),
 			args: args,
+			midi_in: None,
+			callback: WriteCallback { name: func.clone(), args: None },
 		}
+	}
+	pub fn add_args(&mut self) {
 	}
 }

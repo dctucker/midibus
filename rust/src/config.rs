@@ -5,7 +5,7 @@ pub struct ConfigLine {
 	pub r#in: String,
 	pub out: String,
 	pub func: String,
-	pub args: String
+	pub args: String,
 }
 
 #[derive(Debug)]
@@ -22,9 +22,9 @@ impl Config {
 				let r = rec.unwrap();
 				ConfigLine {
 					r#in: r[0].to_string(),
-					out: r[1].to_string(),
+					out : r[1].to_string(),
 					func: r[2].to_string(),
-					args: r[3].to_string()
+					args: r[3].to_string(),
 				}
 			}).collect::<Vec<ConfigLine>>()
 		)

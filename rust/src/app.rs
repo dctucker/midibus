@@ -57,7 +57,7 @@ impl App {
 			let key = line.r#in.to_string();
 			let out = self.output_devices.get(&line.out).unwrap();
 			self.read_threads.get_mut(&key).unwrap()
-				.attach(
+				.setup_write(
 					Rc::clone(out),
 					line.func.to_string(),
 					line.args.to_string()
