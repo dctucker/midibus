@@ -15,7 +15,7 @@ fn main() {
 	//println!("{:?}", app.config.lines());
 	app.add_macro();
 
-	devices::main();
+	//devices::main();
 
 	if false { devices::main() }
 

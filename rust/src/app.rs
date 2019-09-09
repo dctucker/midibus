@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 use std::collections::HashMap;
 use crate::config::{Config};
 use crate::thru::ReadThread;
@@ -6,7 +6,7 @@ use crate::thru::OutputDevice;
 use crate::r#macro::MacroData;
 
 type ReadThreadMap = HashMap<String,ReadThread>;
-type OutputDeviceMap = HashMap<String,Rc<OutputDevice>>;
+type OutputDeviceMap = HashMap<String,Arc<OutputDevice>>;
 
 #[derive(Debug)]
 pub struct App {
@@ -38,7 +38,7 @@ impl App {
 	fn init_output_devices(&mut self) {
 		for key in self.config.uniq_out() {
 			if ! self.output_devices.contains_key(&key) {
-				self.output_devices.insert(key.clone(), Rc::new(OutputDevice::new(key.clone())));
+				self.output_devices.insert(key.clone(), Arc::new(OutputDevice::new(key.clone())));
 			}
 		}
 	}
@@ -59,7 +59,7 @@ impl App {
 			let out = self.output_devices.get(&line.out).unwrap();
 			self.read_threads.get_mut(&key).unwrap()
 				.setup_write(
-					Rc::clone(out),
+					Arc::clone(out),
 					line.func.to_string(),
 					line.args.to_string()
 				);

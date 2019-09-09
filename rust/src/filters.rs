@@ -6,13 +6,16 @@ const MASK_RT    : u32 = 1 << 21;
 const MASK_ALL   : u32 = 0x1fffe;
 
 #[derive(Debug)]
-struct Channel {
-	mask : u32,
-}
+struct Void { }
+impl Void { pub fn new( args : String ) -> Void { Void { } } }
+impl CallbackFn for Void { fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize { 0 } }
+
+#[derive(Debug)]
+struct Channel { mask : u32 }
 impl Channel {
 	pub fn new( args : String ) -> Channel {
 		let mut mask : u32 = 0;
-		println!("{}", args);
+		//println!("{}", args);
 		for arg in args.split(",") {
 			mask |= match arg {
 				"sysex" => MASK_SYSEX,
@@ -39,12 +42,41 @@ impl CallbackFn for Channel {
 }
 
 #[derive(Debug)]
-struct Void {
+struct Funnel { channel : u8 }
+impl Funnel {
+	pub fn new( args : String ) -> Funnel {
+		Funnel { channel : args.parse().unwrap() }
+	}
 }
-impl Void {
-	pub fn new( args : String ) -> Void { Void { } }
+impl CallbackFn for Funnel {
+	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
+		//println!("{}", buf);
+		0
+	}
 }
-impl CallbackFn for Void {
+
+#[derive(Debug)]
+struct CCMap { channel : u8, out_cc : Vec<u8> }
+impl CCMap {
+	pub fn new( args : String ) -> CCMap {
+		CCMap { channel : args.parse().unwrap(), out_cc : vec![] }
+	}
+}
+impl CallbackFn for CCMap {
+	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
+		//println!("{}", buf);
+		0
+	}
+}
+
+#[derive(Debug)]
+struct Status { out_status : Vec<u8> }
+impl Status {
+	pub fn new( args : String ) -> Status {
+		Status { out_status : vec![] }
+	}
+}
+impl CallbackFn for Status {
 	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
@@ -54,20 +86,8 @@ impl CallbackFn for Void {
 #[enum_dispatch]
 #[derive(Debug)]
 pub enum Callback {
-	Channel,
 	Void,
-	/*
-	Funnel {
-		channel : u8,
-	},
-	CCMap {
-		channel : u8,
-		out_cc : Vec<u8>,
-	},
-	Status {
-		out_status : Vec<u8>,
-	},
-	*/
+	Channel,
 }
 
 #[enum_dispatch(Callback)]
