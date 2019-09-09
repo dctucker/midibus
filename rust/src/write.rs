@@ -1,14 +1,14 @@
-use std::rc::Rc;
+use std::sync::{Arc,Mutex};
 use std::fmt;
 use alsa::rawmidi::Rawmidi;
 use crate::thru::OutputDevice;
 use crate::filters;
 
 pub struct WriteData {
-	pub output_device : Rc<OutputDevice>,
+	pub output_device : Arc<OutputDevice>,
 	pub func_name: String,
 	args: String,
-	midi_in : Option<Rawmidi>,
+	midi_in : Option<Mutex<Rawmidi>>,
 	callback : filters::Callback,
 }
 impl fmt::Debug for WriteData {
@@ -19,7 +19,7 @@ impl fmt::Debug for WriteData {
 }
 
 impl WriteData {
-	pub fn new(out: Rc<OutputDevice>, func : String, args : String) -> WriteData {
+	pub fn new(out: Arc<OutputDevice>, func : String, args : String) -> WriteData {
 		WriteData {
 			output_device: out,
 			func_name: func.clone(),

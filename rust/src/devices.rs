@@ -25,6 +25,7 @@ fn list_cards() {
 }
 
 pub fn main() {
+	/*
 	use std::ffi::CString;
 	use alsa::device_name::HintIter;
 
@@ -34,11 +35,9 @@ pub fn main() {
 		for a in i { println!("  {:?}", a) }
 	}
 	list_cards();
-
-	if false {
-		let mio = Rawmidi::new("hw:mio", Direction::input(), false).unwrap();
-		for data in mio.io().bytes() {
-			println!("{}", data.unwrap());
-		}
+	*/
+	let mio = Rawmidi::new("hw:mio", Direction::input(), false).unwrap();
+	for data in mio.io().bytes() {
+		println!("{}", data.unwrap());
 	}
 }
