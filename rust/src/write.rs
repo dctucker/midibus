@@ -1,19 +1,19 @@
 use std::sync::{Arc,Mutex};
 use std::fmt;
-use alsa::rawmidi::Rawmidi;
-use crate::thru::OutputDevice;
+use crate::output::OutputDevice;
 use crate::filters;
+use crate::lib::SafeRawmidi;
 
 pub struct WriteData {
 	pub output_device : Arc<OutputDevice>,
 	pub func_name: String,
 	args: String,
-	midi_in : Option<Mutex<Rawmidi>>,
+	midi_in : SafeRawmidi,
 	callback : filters::Callback,
 }
 impl fmt::Debug for WriteData {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "WriteData: {{ output_device: {:#?}, func_name: {}, args: {:?}, callback: {:?} }}",
+		write!(f, "WriteData: {{ {:#?}.{}({:?}) -> {:?} }}",
 			self.output_device, self.func_name, self.args, self.callback)
 	}
 }

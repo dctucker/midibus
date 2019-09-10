@@ -1,42 +1,18 @@
 extern crate alsa;
 
-use std::cell::{RefCell,Cell};
-use std::sync::{Mutex,RwLock};
+use std::sync::RwLock;
 use std::sync::Arc;
 use std::fmt;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
-use alsa::rawmidi::Rawmidi;
 use crate::r#macro::MacroListener;
+use crate::output::OutputDevice;
 use crate::write::WriteData;
-
-pub struct OutputDevice {
-	midi : Option<Mutex<Rawmidi>>,
-	status : u8,
-	midi_in_exclusive : Option<Mutex<Rawmidi>>,
-	port_name : String
-}
-
-impl fmt::Debug for OutputDevice {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "OutputDevice {{ port_name: {} }}", self.port_name)
-	}
-}
-
-impl OutputDevice {
-	pub fn new(name : String) -> OutputDevice {
-		OutputDevice {
-			port_name: name,
-			status: 0,
-			midi: None,
-			midi_in_exclusive: None,
-		}
-	}
-}
+use crate::lib::SafeRawmidi;
 
 pub struct ReadData {
-	midi : Option<Mutex<Rawmidi>>,
+	midi : SafeRawmidi,
 	port_name : String,
 	outs : Vec<WriteData>,
 	macros : Vec<MacroListener>
@@ -64,6 +40,11 @@ impl ReadData {
 		}
 		self.outs.push( WriteData::new(out, func, args) );
 	}
+	pub fn run(&self) {
+		println!("{}", self.port_name);
+		thread::sleep(Duration::from_millis(1000));
+		println!("{} done", self.port_name);
+	}
 }
 
 pub struct ReadThread {
@@ -83,9 +64,7 @@ impl ReadThread {
 			data: arc.clone(),
 			handle: thread::spawn(move || {
 				let data = arc.read().unwrap();
-				println!("{}", data.port_name);
-				thread::sleep(Duration::from_millis(1000));
-				println!("{} done", data.port_name);
+				data.run();
 			}),
 		}
 	}

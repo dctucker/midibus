@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use crate::config::{Config};
 use crate::thru::ReadThread;
-use crate::thru::OutputDevice;
+use crate::output::OutputDevice;
 use crate::r#macro::MacroData;
 
 type ReadThreadMap = HashMap<String,ReadThread>;

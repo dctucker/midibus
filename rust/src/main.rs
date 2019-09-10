@@ -8,6 +8,8 @@ mod r#macro;
 mod devices;
 mod write;
 mod filters;
+mod output;
+mod lib;
 
 fn main() {
 	let mut app = app::App::new();
