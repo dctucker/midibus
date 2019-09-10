@@ -1,11 +1,16 @@
 use std::collections::HashSet;
+use std::fmt;
 
-#[derive(Debug)]
 pub struct ConfigLine {
 	pub r#in: String,
 	pub out: String,
 	pub func: String,
 	pub args: String,
+}
+impl fmt::Debug for ConfigLine {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "ConfigLine {{ {:}, {:}, {:}, {:} }}", self.r#in, self.out, self.func, self.args)
+	}
 }
 
 #[derive(Debug)]
