@@ -6,7 +6,7 @@ use alsa::rawmidi::Rawmidi;
 use alsa::card::Iter as CardIter;
 use alsa::ctl::Ctl;
 
-fn list_cards() {
+pub fn list_cards() {
 	let cards = CardIter::new();
 	for (_i,c) in cards.enumerate() {
 		let card = c.unwrap();

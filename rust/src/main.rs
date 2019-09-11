@@ -1,26 +1,26 @@
+//extern crate signal_hook;
 extern crate alsa;
 extern crate csv;
+
+use std::io::Error;
+use std::sync::Arc;
 
 mod app;
 mod config;
 mod thru;
 mod r#macro;
-mod devices;
 mod write;
 mod filters;
 mod output;
 mod lib;
 
-fn main() {
+fn main() -> Result<(), Error> {
+	println!("Starting up");
 	let mut app = app::App::new();
-	//let read_threads = thru::
-	//println!("{:?}", app.config.lines());
-	app.add_macro();
-
-	//devices::main();
-
-	if false { devices::main() }
+	//signal_hook::flag::register(signal_hook::SIGHUP, Arc::clone(&app.hup))?;
 
 	println!("{:#?}", app);
+
 	app.join();
+	Ok(())
 }

@@ -1,15 +1,17 @@
 use std::sync::{Arc,Mutex};
 use std::fmt;
+use crate::filters::CallbackFn;
 use crate::output::OutputDevice;
 use crate::filters;
 use crate::lib::SafeRawmidi;
+use alsa::rawmidi::Rawmidi;
 
 pub struct WriteData {
 	pub output_device : Arc<OutputDevice>,
 	pub func_name: String,
 	args: String,
-	midi_in : SafeRawmidi,
-	callback : filters::Callback,
+	midi_in : Option<Arc<Mutex<Rawmidi>>>,
+	pub callback : filters::Callback,
 }
 impl fmt::Debug for WriteData {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -29,5 +31,11 @@ impl WriteData {
 		}
 	}
 	pub fn add_args(&mut self) {
+	}
+	pub fn call(&self, buf : &Vec<u8>) {
+		self.callback.callback(&self.output_device, buf);
+	}
+	pub fn update_midi_in(&mut self, midi_in : Arc<Mutex<Rawmidi>> ) {
+		self.midi_in = Some(midi_in.clone());
 	}
 }
