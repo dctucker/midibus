@@ -1,5 +1,5 @@
 use enum_dispatch::enum_dispatch;
-use crate::write::WriteData;
+use crate::output::OutputDevice;
 
 const MASK_SYSEX : u32 = 1 << 20;
 const MASK_RT    : u32 = 1 << 21;
@@ -8,7 +8,7 @@ const MASK_ALL   : u32 = 0x1fffe;
 #[derive(Debug)]
 struct Void { }
 impl Void { pub fn new( args : String ) -> Void { Void { } } }
-impl CallbackFn for Void { fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize { 0 } }
+impl CallbackFn for Void { fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize { 0 } }
 
 #[derive(Debug)]
 struct Channel { mask : u32 }
@@ -35,7 +35,7 @@ impl Channel {
 	}
 }
 impl CallbackFn for Channel {
-	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
+	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -49,7 +49,7 @@ impl Funnel {
 	}
 }
 impl CallbackFn for Funnel {
-	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
+	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -63,7 +63,7 @@ impl CCMap {
 	}
 }
 impl CallbackFn for CCMap {
-	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
+	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -77,7 +77,7 @@ impl Status {
 	}
 }
 impl CallbackFn for Status {
-	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize {
+	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -92,7 +92,7 @@ pub enum Callback {
 
 #[enum_dispatch(Callback)]
 pub trait CallbackFn {
-	fn callback(&mut self, write_data : WriteData, buf : &Vec<u8>) -> usize;
+	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize;
 }
 
 impl Callback {
