@@ -10,7 +10,7 @@ use crate::lib::SafeRawmidi;
 pub struct OutputDevice {
 	midi : SafeRawmidi,
 	status : u8,
-	midi_in_exclusive : SafeRawmidi,
+	//midi_in_exclusive : SafeRawmidi,
 	pub port_name : String
 }
 
@@ -26,7 +26,7 @@ impl OutputDevice {
 			port_name: name,
 			status: 0,
 			midi: None,
-			midi_in_exclusive: None,
+			//midi_in_exclusive: None,
 		}
 	}
 	pub fn send_buffer(&mut self, buf : &Vec<u8> ) -> Result<usize, String> {

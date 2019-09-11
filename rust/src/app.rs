@@ -42,7 +42,7 @@ impl App {
 	fn init_output_devices(&mut self) {
 		println!("setup output threads");
 		for key in self.config.uniq_out() {
-			if key == "server" { continue; }
+			if key == "server" || key == "macro" { continue; }
 			if ! self.output_devices.contains_key(&key) {
 				self.output_devices.insert(key.clone(),
 					Arc::new(OutputDevice::new(key.clone()))
@@ -54,7 +54,7 @@ impl App {
 	fn init_read_threads(&mut self) {
 		println!("init read threads");
 		for key in self.config.uniq_in() {
-			if key == "server" { continue; }
+			if key == "server" || key == "macro" { continue; }
 			if ! self.read_threads.contains_key(&key) {
 				let mut read_thread = ReadThread::new(key.clone());
 				self.read_threads.insert(key.clone(), read_thread);
@@ -65,17 +65,26 @@ impl App {
 	fn setup_read_threads(&mut self) {
 		println!("setup read threads");
 		let lines = self.config.lines();
-		for l in lines {
-			let line = l.clone();
+		for line in lines.iter() {
+			println!("Setting up line {:?}", line);
 			let key = line.r#in.to_string();
-			let out = self.output_devices.get(&line.out).unwrap();
-			self.read_threads.get_mut(&key).unwrap()
-				.setup_write(
-					Arc::clone(out),
-					line.func.to_string(),
-					line.args.to_string()
-				);
+			if key == "server" || key == "macro" { continue; }
+			match self.output_devices.get(&line.out) {
+				Some(out) => {
+					self.read_threads.get(&key).unwrap()
+						.setup_write(
+							Arc::clone(out),
+							line.func.to_string(),
+							line.args.to_string()
+						);
+				},
+				None => {
+					println!("Output device not found {}", line.out);
+				},
+			}
+			println!("setup_write done");
 		}
+		println!("setup read return");
 	}
 
 	pub fn join(&mut self) {
