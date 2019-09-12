@@ -2,11 +2,11 @@ extern crate alsa;
 
 use std::fmt;
 use std::io::Write;
-//use crate::r#macro::MacroListener;
-use crate::lib::SafeRawmidi;
+use std::sync::Mutex;
+use alsa::rawmidi::Rawmidi;
 
 pub struct OutputDevice {
-	midi : SafeRawmidi,
+	midi : Option<Mutex<Rawmidi>>,
 	status : u8,
 	//midi_in_exclusive : SafeRawmidi,
 	pub port_name : String
