@@ -6,12 +6,12 @@ const MASK_RT    : u32 = 1 << 21;
 const MASK_ALL   : u32 = 0x1fffe;
 
 #[derive(Debug)]
-struct Void { }
-impl Void { pub fn new( args : String ) -> Void { Void { } } }
-impl CallbackFn for Void { fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize { 0 } }
+pub struct Void { }
+impl Void { pub fn new( _args : String ) -> Void { Void { } } }
+impl CallbackFn for Void { fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize { 0 } }
 
 #[derive(Debug)]
-struct Channel { mask : u32 }
+pub struct Channel { mask : u32 }
 impl Channel {
 	pub fn new( args : String ) -> Channel {
 		let mut mask : u32 = 0;
@@ -35,49 +35,50 @@ impl Channel {
 	}
 }
 impl CallbackFn for Channel {
-	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
+	fn callback(&self, write_data : &mut OutputDevice, buf : &Vec<u8>) -> usize {
+		write_data.send_buffer(buf).unwrap();
 		//println!("{}", buf);
 		0
 	}
 }
 
 #[derive(Debug)]
-struct Funnel { channel : u8 }
+pub struct Funnel { channel : u8 }
 impl Funnel {
 	pub fn new( args : String ) -> Funnel {
 		Funnel { channel : args.parse().unwrap() }
 	}
 }
 impl CallbackFn for Funnel {
-	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
+	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
 }
 
 #[derive(Debug)]
-struct CCMap { channel : u8, out_cc : Vec<u8> }
+pub struct CCMap { channel : u8, out_cc : Vec<u8> }
 impl CCMap {
 	pub fn new( args : String ) -> CCMap {
 		CCMap { channel : args.parse().unwrap(), out_cc : vec![] }
 	}
 }
 impl CallbackFn for CCMap {
-	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
+	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
 }
 
 #[derive(Debug)]
-struct Status { out_status : Vec<u8> }
+pub struct Status { out_status : Vec<u8> }
 impl Status {
-	pub fn new( args : String ) -> Status {
+	pub fn new( _args : String ) -> Status {
 		Status { out_status : vec![] }
 	}
 }
 impl CallbackFn for Status {
-	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize {
+	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -88,17 +89,23 @@ impl CallbackFn for Status {
 pub enum Callback {
 	Void,
 	Channel,
+	Funnel,
+	CCMap,
+	Status,
 }
 
 #[enum_dispatch(Callback)]
 pub trait CallbackFn {
-	fn callback(&self, write_data : &OutputDevice, buf : &Vec<u8>) -> usize;
+	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize;
 }
 
 impl Callback {
 	pub fn new( name : String, args : String ) -> Callback {
 		match name.as_ref() {
 			"channel" => Channel::new(args).into(),
+			"funnel"  =>  Funnel::new(args).into(),
+			"ccmap"   =>   CCMap::new(args).into(),
+			"status"  =>  Status::new(args).into(),
 			_ => Void::new(args).into(),
 		}
 	}

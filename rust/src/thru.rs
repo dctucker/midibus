@@ -1,24 +1,22 @@
 extern crate libc;
 extern crate alsa;
 
-use timeout_readwrite::TimeoutReader;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::Read;
 use alsa::rawmidi::Rawmidi;
-use alsa::card::Iter as CardIter;
-use alsa::rawmidi::Iter;
 use alsa::Direction;
-use alsa::ctl::Ctl;
-use std::sync::{Mutex,RwLock};
+//use alsa::card::Iter as CardIter;
+//use alsa::rawmidi::Iter;
+//use alsa::ctl::Ctl;
+use std::sync::RwLock;
 use std::sync::Arc;
 use std::fmt;
 use std::thread;
-use std::thread::JoinHandle;
+//use std::thread::JoinHandle;
 use std::time::Duration;
 use crate::r#macro::MacroListener;
 use crate::output::OutputDevice;
 use crate::write::WriteData;
-use crate::lib::SafeRawmidi;
 
 const BUFSIZE : usize = 1024;
 
@@ -40,49 +38,29 @@ impl ReadData {
 			macros: vec![],
 		}
 	}
-	pub fn setup_write(&mut self, out : Arc<OutputDevice>, func : String, args : String) {
-		for mut wd in &mut self.outs {
-			if wd.func_name == func && wd.output_device.port_name == out.port_name {
+	pub fn setup_write(&mut self, out : Arc<RwLock<OutputDevice>>, func : String, args : String) {
+		let port_name = out.read().unwrap().port_name.clone();
+		for wd in self.outs.iter_mut() {
+			if wd.func_name == func && wd.output_device.read().unwrap().port_name == port_name {
 				wd.add_args();
-				return
+				return;
 			}
 		}
 		self.outs.push( WriteData::new(out, func, args) );
+
 	}
-	fn handle_read(&self, buf : Vec<u8>) {
+	fn handle_read(&mut self, buf : Vec<u8>) {
 		print!("I");
 		for x in buf.iter(){ print!(" 0x{:02x}", x); }
 		println!(" {}", self.port_name);
-		for w in self.outs.iter() {
+		for w in self.outs.iter_mut() {
 			w.call(&buf);
 		}
 	}
-
-	/*
-	fn scan_loop() {
-		'scan: loop {
-			for a in CardIter::new().map(|a| a.unwrap()) {
-				for b in Iter::new(&Ctl::from_card(&a, false).unwrap()).map(|b| b.unwrap()) {
-					if b.get_stream() == Direction::Capture {
-						if b.get_subdevice_name().unwrap() == self.port_name {
-							break 'scan;
-						}
-					}
-					println!("{:?} {}", b.get_stream(), b.get_id().unwrap());
-				}
-			}
-			tries += 1;
-			thread::sleep(Duration::from_millis(1000));
-			if tries % 5 == 0 {
-				thread::sleep(Duration::from_millis(10000));
-			}
-		}
-	}
-	*/
 }
 
 pub struct ReadThread {
-	handle : JoinHandle<()>,
+	//handle : JoinHandle<()>,
 	data : Arc<RwLock<ReadData>>,
 	pub hup : Arc<AtomicBool>,
 }
@@ -102,7 +80,7 @@ impl ReadThread {
 			if res == 0 { continue; }
 			match midi.io().read(&mut buf) {
 				Ok(n) => {
-					arc.write().unwrap().handle_read( buf.to_vec() );
+					arc.write().unwrap().handle_read( buf[0..n].to_vec() );
 				},
 				Err(_) => {
 					println!("Error reading");
@@ -150,19 +128,21 @@ impl ReadThread {
 				ReadThread::wait_loop(&hup);
 			}
 		};
-		let handle = thread::spawn(routine);
+		let _handle = thread::spawn(routine);
 		println!("Spawning new thread");
 
 		ReadThread {
 			hup: hup2,
 			data: arc2,
-			handle: handle,
+			//handle: handle,
 		}
 	}
+	/*
 	pub fn join(self) {
 		self.handle.join().unwrap();
 	}
-	pub fn setup_write(&self, out : Arc<OutputDevice>, func : String, args : String) {
+	*/
+	pub fn setup_write(&self, out : Arc<RwLock<OutputDevice>>, func : String, args : String) {
 		self.data.write().unwrap().setup_write(out,func,args);
 	}
 }
