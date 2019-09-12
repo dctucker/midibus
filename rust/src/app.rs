@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc,RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 use crate::config::{Config};
@@ -7,7 +7,7 @@ use crate::output::OutputDevice;
 use crate::r#macro::MacroData;
 
 type ReadThreadMap = HashMap<String,ReadThread>;
-type OutputDeviceMap = HashMap<String,Arc<OutputDevice>>;
+type OutputDeviceMap = HashMap<String,Arc<RwLock<OutputDevice>>>;
 
 #[derive(Debug)]
 pub struct App {
@@ -45,7 +45,7 @@ impl App {
 			if key == "server" || key == "macro" { continue; }
 			if ! self.output_devices.contains_key(&key) {
 				self.output_devices.insert(key.clone(),
-					Arc::new(OutputDevice::new(key.clone()))
+					Arc::new(RwLock::new(OutputDevice::new(key.clone())))
 				);
 			}
 		}
@@ -56,7 +56,7 @@ impl App {
 		for key in self.config.uniq_in() {
 			if key == "server" || key == "macro" { continue; }
 			if ! self.read_threads.contains_key(&key) {
-				let mut read_thread = ReadThread::new(key.clone());
+				let read_thread = ReadThread::new(key.clone());
 				self.read_threads.insert(key.clone(), read_thread);
 			}
 		}
@@ -73,7 +73,7 @@ impl App {
 				Some(out) => {
 					self.read_threads.get(&key).unwrap()
 						.setup_write(
-							Arc::clone(out),
+							out.clone(),
 							line.func.to_string(),
 							line.args.to_string()
 						);
@@ -97,9 +97,11 @@ impl App {
 				}
 			}
 		}
-		for (name,thread) in self.read_threads {
+		/*
+		for (_name,thread) in self.read_threads {
 			thread.join();
 		}
+		*/
 	}
 
 	/*

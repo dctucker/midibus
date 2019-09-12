@@ -1,10 +1,8 @@
 extern crate alsa;
 
-use std::sync::Arc;
 use std::fmt;
-use std::error::Error;
 use std::io::Write;
-use crate::r#macro::MacroListener;
+//use crate::r#macro::MacroListener;
 use crate::lib::SafeRawmidi;
 
 pub struct OutputDevice {
@@ -33,7 +31,7 @@ impl OutputDevice {
 		let midi = match &self.midi {
 			Some(mutex) => match mutex.lock() {
 				Ok(m) => m,
-				Err(e) => return Err(format!("Could not lock {}", self.port_name)),
+				Err(_) => return Err(format!("Could not lock {}", self.port_name)),
 			},
 			None => {
 				println!("Device not connected {}", self.port_name);
@@ -51,7 +49,7 @@ impl OutputDevice {
 				self.status = status;
 				Ok(n)
 			},
-			Err(e) => Err(format!("Error writing to {}", self.port_name)),
+			Err(_) => Err(format!("Error writing to {}", self.port_name)),
 		}
 	}
 }
