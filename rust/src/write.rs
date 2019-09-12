@@ -3,7 +3,6 @@ use std::fmt;
 use crate::filters::CallbackFn;
 use crate::output::OutputDevice;
 use crate::filters;
-//use alsa::rawmidi::Rawmidi;
 
 pub struct WriteData {
 	pub output_device : Arc<RwLock<OutputDevice>>,

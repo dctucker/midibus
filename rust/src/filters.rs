@@ -5,6 +5,15 @@ const MASK_SYSEX : u32 = 1 << 20;
 const MASK_RT    : u32 = 1 << 21;
 const MASK_ALL   : u32 = 0x1fffe;
 
+fn parse_hex(arg : &str) -> u8 {
+	if arg.starts_with("0x") {
+		let without_prefix = arg.trim_start_matches("0x");
+		u8::from_str_radix(without_prefix, 16).unwrap()
+	} else {
+		arg.parse::<u8>().unwrap()
+	}
+}
+
 #[derive(Debug)]
 pub struct Void { }
 impl Void { pub fn new( _args : String ) -> Void { Void { } } }
@@ -21,14 +30,7 @@ impl Channel {
 				"sysex" => MASK_SYSEX,
 				"all" => MASK_ALL,
 				"rt" => MASK_RT,
-				_ => {
-					if arg.starts_with("0x") {
-						let without_prefix = arg.trim_start_matches("0x");
-						1 << u32::from_str_radix(without_prefix, 16).unwrap()
-					} else {
-						1 << arg.parse::<u8>().unwrap()
-					}
-				},
+				_ => 1 << parse_hex(arg),
 			};
 		}
 		Channel { mask: mask }
@@ -46,7 +48,7 @@ impl CallbackFn for Channel {
 pub struct Funnel { channel : u8 }
 impl Funnel {
 	pub fn new( args : String ) -> Funnel {
-		Funnel { channel : args.parse().unwrap() }
+		Funnel { channel : parse_hex(&args) }
 	}
 }
 impl CallbackFn for Funnel {
@@ -60,7 +62,8 @@ impl CallbackFn for Funnel {
 pub struct CCMap { channel : u8, out_cc : Vec<u8> }
 impl CCMap {
 	pub fn new( args : String ) -> CCMap {
-		CCMap { channel : args.parse().unwrap(), out_cc : vec![] }
+		let args : Vec<&str> = args.split(",").collect();
+		CCMap { channel : parse_hex(args[0]), out_cc : vec![] }
 	}
 }
 impl CallbackFn for CCMap {
