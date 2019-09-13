@@ -8,7 +8,7 @@ use alsa::rawmidi::Rawmidi;
 pub struct OutputDevice {
 	midi : Option<Mutex<Rawmidi>>,
 	status : u8,
-	//midi_in_exclusive : SafeRawmidi,
+	pub midi_in_exclusive : String,
 	pub port_name : String
 }
 
@@ -21,10 +21,10 @@ impl fmt::Debug for OutputDevice {
 impl OutputDevice {
 	pub fn new(name : String) -> OutputDevice {
 		OutputDevice {
+			midi: None,
 			port_name: name,
 			status: 0,
-			midi: None,
-			//midi_in_exclusive: None,
+			midi_in_exclusive: "".to_string(),
 		}
 	}
 	pub fn send_buffer(&mut self, buf : &Vec<u8> ) -> Result<usize, String> {
