@@ -76,12 +76,14 @@ impl ReadThread {
 		'read: loop {
 			use alsa::PollDescriptors;
 			let mut buf : Vec<u8> = vec![0; BUFSIZE];
-			//println!("reading from {}", self.port_name);
 			while ! flags.run.load(Ordering::Relaxed) {
-				if flags.hup.swap(false, Ordering::Relaxed) { break 'read; }
+				if flags.hup.swap(false, Ordering::Relaxed) {
+					break 'read;
+				}
 				thread::sleep(Duration::from_millis(500));
 			}
 			thread::yield_now();
+
 			let res = alsa::poll::poll(&mut midi.get().unwrap(), 500).unwrap();
 			if res == 0 { continue; }
 			match midi.io().read(&mut buf) {
@@ -124,13 +126,12 @@ impl ReadThread {
 			while ! &flags.run.load(Ordering::Relaxed) {
 				thread::sleep(Duration::from_millis(1000));
 			}
-			println!("Starting outer loop {}", port_name);
 			'outer: loop {
 				println!("Scanning for {}", port_name);
 				match Rawmidi::new(&port_name, Direction::input(), false) {
 					Err(_) => {},
 					Ok(midi) => {
-						println!("Opened {}", port_name);
+						println!("Opened {} for input", port_name);
 						ReadThread::read_loop(&flags, &arc, &midi);
 					},
 				};

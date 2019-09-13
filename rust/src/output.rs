@@ -20,11 +20,25 @@ impl fmt::Debug for OutputDevice {
 
 impl OutputDevice {
 	pub fn new(name : String) -> OutputDevice {
-		OutputDevice {
+		let mut out = OutputDevice {
 			midi: None,
 			port_name: name,
 			status: 0,
 			midi_in_exclusive: "".to_string(),
+		};
+		out.connect();
+		out
+	}
+	pub fn connect( &mut self ) {
+		self.midi = match Rawmidi::new(&self.port_name, alsa::Direction::output(), false) {
+			Ok(midi) => {
+				println!("Opened {} for output", self.port_name);
+				Some( Mutex::new( midi ) )
+			},
+			Err(_) => {
+				println!("Could not open {} for output", self.port_name);
+				None
+			},
 		}
 	}
 	pub fn send_buffer(&mut self, buf : &Vec<u8> ) -> Result<usize, String> {
@@ -40,6 +54,7 @@ impl OutputDevice {
 		};
 		match midi.io().write(buf) {
 			Ok(n) => {
+				self.handle_write(buf.to_vec());
 				let mut status : u8 = self.status;
 				for c in buf.iter() {
 					if *c >= 0x80 {
@@ -51,5 +66,17 @@ impl OutputDevice {
 			},
 			Err(_) => Err(format!("Error writing to {}", self.port_name)),
 		}
+	}
+	fn handle_write(&self, buf : Vec<u8>) {
+		print!("O");
+		for x in buf.iter(){ print!(" 0x{:02x}", x); }
+		println!(" {}", self.port_name);
+	}
+	pub fn scan_status( &mut self, status : u8 ) -> u8 {
+		if status < 0x80 {
+			return self.status;
+		}
+		self.status = status;
+		self.status
 	}
 }

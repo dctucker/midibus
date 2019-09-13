@@ -78,18 +78,6 @@ impl App {
 		println!();
 		let read = read_threads.by_name(&line.r#in);
 		let out = output_devices.by_name(&line.out);
-		/*
-		let read = match self.read_threads.get(&line.r#in) {
-			Some(read) => read,
-			None => read_threads.by_name(&line.r#in)
-		};
-		*/
-		/*
-		let out = match output_devices.get(&line.out) {
-			Some(out) => out,
-			None => { return; }, //App::init_output_thread(&line.out) },
-		};
-		*/
 		read.setup_write( out.clone(), line.func.to_string(), line.args.to_string());
 	}
 

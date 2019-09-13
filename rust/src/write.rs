@@ -44,8 +44,8 @@ impl WriteData {
 		self.midi_in = data.midi_in.to_string();
 	}
 	/*
-	pub fn update_midi_in(&mut self, midi_in : Arc<Mutex<Rawmidi>> ) {
-		self.midi_in = Some(midi_in.clone());
+	pub fn update_midi_in(&mut self, midi_in : &String ) {
+		self.midi_in = midi_in.clone();
 	}
 	*/
 }
