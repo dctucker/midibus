@@ -41,7 +41,7 @@ impl Create<ReadThread> for ReadThreadMap {
 pub type OutputDeviceMap = DeviceMap<Arc<RwLock<OutputDevice>>>;
 impl Create<Arc<RwLock<OutputDevice>>> for OutputDeviceMap {
 	fn create( key : &String ) -> Arc<RwLock<OutputDevice>> {
-		Arc::new(RwLock::new(OutputDevice::new(key.clone())))
+		Arc::new( RwLock::new( OutputDevice::new(key.clone() ) ) )
 	}
 }
 
