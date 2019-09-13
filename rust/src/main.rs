@@ -6,6 +6,7 @@ use std::io::Error;
 use std::sync::Arc;
 
 mod app;
+mod devices;
 mod config;
 mod thru;
 mod r#macro;

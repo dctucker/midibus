@@ -1,43 +1,8 @@
-use std::sync::{Arc,RwLock};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::collections::HashMap;
 use crate::config::{Config,ConfigLine};
-use crate::thru::ReadThread;
-use crate::output::OutputDevice;
 use crate::r#macro::MacroData;
-
-//pub type ReadThreadMap = HashMap<String,ReadThread>;
-//pub type OutputDeviceMap = HashMap<String,Arc<RwLock<OutputDevice>>>;
-
-#[derive(Debug)]
-pub struct ReadThreadMap( HashMap<String,ReadThread> );
-impl ReadThreadMap {
-	pub fn new() -> ReadThreadMap { ReadThreadMap( HashMap::new() ) }
-	pub fn by_name( &mut self, key : &String ) -> &ReadThread {
-		if ! self.0.contains_key(key) {
-			println!("New input device {}", key);
-			let read_thread = ReadThread::new(String::from(key));
-			self.0.insert(String::from(key), read_thread);
-		}
-		self.0.get(key).unwrap()
-	}
-}
-
-#[derive(Debug)]
-pub struct OutputDeviceMap( HashMap<String,Arc<RwLock<OutputDevice>>> );
-impl OutputDeviceMap {
-	pub fn new() -> OutputDeviceMap { OutputDeviceMap( HashMap::new() ) }
-	pub fn by_name( &mut self, key : &String ) -> &Arc<RwLock<OutputDevice>> {
-		if ! self.0.contains_key(key) {
-			println!("New output device {}", key);
-			self.0.insert( String::from(key),
-				Arc::new(RwLock::new(OutputDevice::new(key.clone())))
-			);
-		}
-		self.0.get(key).unwrap()
-	}
-}
-
+use crate::devices::{ReadThreadMap,OutputDeviceMap};
 
 #[derive(Debug)]
 pub struct Flags {
@@ -76,8 +41,10 @@ impl App {
 			macro_data: vec![],
 			flags: Arc::new( Flags::new() ),
 		};
-		//app.init_output_devices();
-		//app.init_read_threads();
+		if false {
+			app.init_output_devices();
+			app.init_read_threads();
+		}
 		app.read_config_lines();
 		app.ready();
 		//app.setup_output_devices();
@@ -85,38 +52,17 @@ impl App {
 		app
 	}
 
-	/*
-	pub fn init_output_device(&mut self, key : &String) {
-		if key == "server" || key == "macro" { return; }
-		if ! self.output_devices.contains_key(key) {
-			println!("New output device {}", key);
-			self.output_devices.insert( String::from(key),
-				Arc::new(RwLock::new(OutputDevice::new(key.clone())))
-			);
+	fn init_read_threads(&mut self) {
+		for key in self.config.uniq_in() {
+			self.read_threads.by_name(&key);
 		}
 	}
 
 	fn init_output_devices(&mut self) {
 		for key in self.config.uniq_out() {
-			self.init_output_device(&key);
+			self.output_devices.by_name(&key);
 		}
 	}
-
-	fn init_read_thread(&mut self, key : &String) -> &ReadThread {
-		if ! self.read_threads.contains_key(key) {
-			println!("New input device {}", key);
-			let read_thread = ReadThread::new(String::from(key));
-			self.read_threads.insert(String::from(key), read_thread);
-		}
-		return self.read_threads.get(key).unwrap();
-	}
-
-	fn init_read_threads(&mut self) {
-		for key in self.config.uniq_in() {
-			self.init_read_thread(&key);
-		}
-	}
-	*/
 
 	fn read_config_lines(&mut self) {
 		for line in self.config.lines().iter() {
@@ -149,7 +95,7 @@ impl App {
 
 	pub fn ready(&mut self) {
 		self.flags.run.store(true, Ordering::Relaxed);
-		for (_name,thread) in self.read_threads.0.iter_mut() {
+		for (_name,thread) in self.read_threads.iter_mut() {
 			thread.flags.run.store(true, Ordering::Relaxed);
 		}
 	}
@@ -159,7 +105,7 @@ impl App {
 		loop {
 			if self.flags.hup.swap(false, Ordering::Relaxed) {
 				println!("Got SIGHUP");
-				for (_name,thread) in self.read_threads.0.iter_mut() {
+				for (_name,thread) in self.read_threads.iter_mut() {
 					thread.flags.hup.store(true, Ordering::Relaxed);
 				}
 			}
