@@ -4,11 +4,16 @@ use crate::filters::CallbackFn;
 use crate::output::OutputDevice;
 use crate::filters;
 
+pub struct CallbackData {
+	pub output_device : Arc<RwLock<OutputDevice>>,
+	pub midi_in : String,
+}
+
 pub struct WriteData {
 	pub output_device : Arc<RwLock<OutputDevice>>,
 	pub func_name: String,
 	args: String,
-	//midi_in : Option<Arc<Mutex<Rawmidi>>>,
+	pub midi_in : String,
 	pub callback : filters::Callback,
 }
 impl fmt::Debug for WriteData {
@@ -24,14 +29,19 @@ impl WriteData {
 			output_device: out.clone(),
 			func_name: func.clone(),
 			args: args.clone(),
-			//midi_in: None,
+			midi_in: "".to_string(),
 			callback: filters::Callback::new( func, args.clone() ),
 		}
 	}
 	pub fn add_args(&mut self) {
 	}
 	pub fn call(&mut self, buf : &Vec<u8>) {
-		self.callback.callback(&mut self.output_device.write().unwrap(), buf);
+		let mut data = CallbackData {
+			output_device: self.output_device.clone(),
+			midi_in: self.midi_in.to_string(),
+		};
+		self.callback.callback(&mut data, buf);
+		self.midi_in = data.midi_in.to_string();
 	}
 	/*
 	pub fn update_midi_in(&mut self, midi_in : Arc<Mutex<Rawmidi>> ) {

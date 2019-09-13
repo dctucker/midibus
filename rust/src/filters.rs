@@ -1,5 +1,7 @@
 use enum_dispatch::enum_dispatch;
-use crate::output::OutputDevice;
+//use crate::output::OutputDevice;
+use crate::write::CallbackData;
+use crate::thru::BUFSIZE;
 
 const MASK_SYSEX : u32 = 1 << 20;
 const MASK_RT    : u32 = 1 << 21;
@@ -17,7 +19,7 @@ fn parse_hex(arg : &str) -> u8 {
 #[derive(Debug)]
 pub struct Void { }
 impl Void { pub fn new( _args : String ) -> Void { Void { } } }
-impl CallbackFn for Void { fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize { 0 } }
+impl CallbackFn for Void { fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize { 0 } }
 
 #[derive(Debug)]
 pub struct Channel { mask : u32 }
@@ -37,10 +39,38 @@ impl Channel {
 	}
 }
 impl CallbackFn for Channel {
-	fn callback(&self, write_data : &mut OutputDevice, buf : &Vec<u8>) -> usize {
-		write_data.send_buffer(buf).unwrap();
-		//println!("{}", buf);
-		0
+	fn callback(&self, data : &mut CallbackData, buf : &Vec<u8>) -> usize {
+		let mask = self.mask;
+		let mut out_buf = [0u8 ; BUFSIZE];
+		let mut current_mask = 0;
+
+		let mut output_device = data.output_device.write().unwrap();
+		if output_device.midi_in_exclusive == data.midi_in {
+			current_mask = MASK_SYSEX;
+		}
+
+		let mut a = 0;
+		for c in buf {
+			//let cur_state = scan_status(data, buf[b]);
+			if *c >= 0xf8 {
+				current_mask = MASK_RT;
+			} else if *c >= 0xf0 {
+				if *c == 0xf0 {
+					output_device.midi_in_exclusive = data.midi_in.clone();
+				} else if *c == 0xf7 {
+					output_device.midi_in_exclusive = "".to_string();
+				}
+				current_mask = MASK_SYSEX;
+			} else if *c >= 0x80 {
+				current_mask = 2 << (c & 0x0f);
+			}
+
+			if mask & current_mask != 0 {
+				out_buf[a] = *c;
+				a += 1;
+			}
+		}
+		output_device.send_buffer(&out_buf[0..a].to_vec()).unwrap()
 	}
 }
 
@@ -52,7 +82,7 @@ impl Funnel {
 	}
 }
 impl CallbackFn for Funnel {
-	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize {
+	fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -67,7 +97,7 @@ impl CCMap {
 	}
 }
 impl CallbackFn for CCMap {
-	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize {
+	fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -81,7 +111,7 @@ impl Status {
 	}
 }
 impl CallbackFn for Status {
-	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize {
+	fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize {
 		//println!("{}", buf);
 		0
 	}
@@ -99,7 +129,7 @@ pub enum Callback {
 
 #[enum_dispatch(Callback)]
 pub trait CallbackFn {
-	fn callback(&self, _write_data : &mut OutputDevice, _buf : &Vec<u8>) -> usize;
+	fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize;
 }
 
 impl Callback {
