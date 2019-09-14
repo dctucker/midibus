@@ -39,6 +39,7 @@ pub enum Callback {
 #[enum_dispatch(Callback)]
 pub trait CallbackFn {
 	fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize;
+	fn add_args( &mut self, args : String ) {}
 }
 
 impl Callback {
