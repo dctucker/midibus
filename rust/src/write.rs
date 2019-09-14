@@ -33,7 +33,8 @@ impl WriteData {
 			callback: filters::Callback::new( func, args.clone() ),
 		}
 	}
-	pub fn add_args(&mut self) {
+	pub fn add_args(&mut self, args : String) {
+		self.callback.add_args(args);
 	}
 	pub fn call(&mut self, buf : &Vec<u8>) {
 		let mut data = CallbackData {

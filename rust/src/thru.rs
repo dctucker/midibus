@@ -44,7 +44,7 @@ impl ReadData {
 		let port_name = out.read().unwrap().port_name.clone();
 		for wd in self.outs.iter_mut() {
 			if wd.func_name == func && wd.output_device.read().unwrap().port_name == port_name {
-				wd.add_args();
+				wd.add_args(args);
 				return;
 			}
 		}

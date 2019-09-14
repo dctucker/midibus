@@ -44,4 +44,3 @@ impl Create<Arc<RwLock<OutputDevice>>> for OutputDeviceMap {
 		Arc::new( RwLock::new( OutputDevice::new(key.clone() ) ) )
 	}
 }
-
