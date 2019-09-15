@@ -27,7 +27,38 @@ impl CallbackFn for CCMap {
 		);
 	}
 	fn callback(&self, data : &mut CallbackData, buf : &Vec<u8>) -> usize {
-		//println!("{}", buf);
-		0
+		let exp_state : u8 = 0xb0 + self.channel;
+		let mut out_buf = [0u8 ; BUFSIZE];
+		let mut cc : u8 = 0xff;
+		let mut val : u8 = 0xff;
+
+		let mut a = 0;
+		for c in buf {
+			let cur_state : u8 = data.output_device.scan_status(*c);
+			if cur_state == exp_state && *c < 0x80 {
+				if cc == 0xff {
+					let s : usize = (*c).try_into().unwrap();
+					let out_cc : u8 = self.out_cc[s];
+					if out_cc < 0x80 {
+						cc = out_cc;
+					} else {
+						cc = 0xfe;
+					}
+				} else if val == 0xff {
+					if cc < 0x80 {
+						val = *c;
+						out_buf[a] = exp_state; a += 1;
+						out_buf[a] = cc; a += 1;
+						out_buf[a] = val; a += 1;
+					}
+					val = 0xff;
+					cc = 0xff;
+				}
+			} else {
+				cc = 0xff;
+				val = 0xff;
+			}
+		}
+		data.output_device.send_buffer(&out_buf[0..a].to_vec()).unwrap()
 	}
 }

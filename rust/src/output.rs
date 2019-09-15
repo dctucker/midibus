@@ -30,6 +30,10 @@ impl OutputDevice {
 		out
 	}
 	pub fn connect( &mut self ) {
+		match self.midi {
+			Some(_) => { return; },
+			None => {},
+		};
 		self.midi = match Rawmidi::new(&self.port_name, alsa::Direction::output(), false) {
 			Ok(midi) => {
 				println!("Opened {} for output", self.port_name);
