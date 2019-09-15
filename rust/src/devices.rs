@@ -38,6 +38,16 @@ impl Create<ReadThread> for ReadThreadMap {
 	}
 }
 
+/*
+impl ReadThreadMap {
+	pub fn join_all(&self) {
+		for (_,j) in self.iter() {
+			j.join();
+		}
+	}
+}
+*/
+
 pub type OutputDeviceMap = DeviceMap<Arc<RwLock<OutputDevice>>>;
 impl Create<Arc<RwLock<OutputDevice>>> for OutputDeviceMap {
 	fn create( key : &String ) -> Arc<RwLock<OutputDevice>> {

@@ -40,7 +40,7 @@ impl ReadData {
 			macros: vec![],
 		}
 	}
-	pub fn setup_write(&mut self, out : Arc<RwLock<OutputDevice>>, func : String, args : String) {
+	pub fn setup_write(&mut self, out : &Arc<RwLock<OutputDevice>>, func : String, args : String) {
 		let port_name = out.read().unwrap().port_name.clone();
 		for wd in self.outs.iter_mut() {
 			if wd.func_name == func && wd.output_device.read().unwrap().port_name == port_name {
@@ -48,7 +48,7 @@ impl ReadData {
 				return;
 			}
 		}
-		self.outs.push( WriteData::new(out, func, args) );
+		self.outs.push( WriteData::new(&out, func, args) );
 
 	}
 	fn handle_read(&mut self, buf : Vec<u8>) {
@@ -62,7 +62,7 @@ impl ReadData {
 }
 
 pub struct ReadThread {
-	//handle : JoinHandle<()>,
+	pub handle : std::thread::JoinHandle<()>,
 	data : Arc<RwLock<ReadData>>,
 	pub flags : Arc<Flags>,
 }
@@ -77,12 +77,11 @@ impl ReadThread {
 			use alsa::PollDescriptors;
 			let mut buf : Vec<u8> = vec![0; BUFSIZE];
 			while ! flags.run.load(Ordering::Relaxed) {
-				if flags.hup.swap(false, Ordering::Relaxed) {
-					break 'read;
-				}
+				if flags.hup.swap(false, Ordering::Relaxed) { break 'read; }
 				thread::sleep(Duration::from_millis(500));
 			}
 			thread::yield_now();
+			if flags.int.load(Ordering::Relaxed) { break 'read; }
 
 			let res = alsa::poll::poll(&mut midi.get().unwrap(), 500).unwrap();
 			if res == 0 { continue; }
@@ -104,10 +103,12 @@ impl ReadThread {
 			tries += 1;
 			thread::sleep(Duration::from_millis(500));
 			if flags.hup.swap(false, Ordering::Relaxed) { break 'wait; }
+			if flags.int.load(Ordering::Relaxed) { break 'wait; }
 			if tries % 5 == 0 {
 				let mut snooze = 10;
 				while snooze > 0 {
 					if flags.hup.swap(false, Ordering::Relaxed) { break 'wait; }
+					if flags.int.load(Ordering::Relaxed) { break 'wait; }
 					thread::sleep(Duration::from_millis(1000));
 					snooze -= 1;
 				}
@@ -127,6 +128,7 @@ impl ReadThread {
 				thread::sleep(Duration::from_millis(1000));
 			}
 			'outer: loop {
+				if flags.int.load(Ordering::Relaxed) { break 'outer; }
 				println!("Scanning for {}", port_name);
 				match Rawmidi::new(&port_name, Direction::input(), false) {
 					Err(_) => {},
@@ -138,22 +140,24 @@ impl ReadThread {
 				thread::yield_now();
 				ReadThread::wait_loop(&flags);
 			}
+			println!("Read thread {} done", port_name);
+			flags.int.store(false, Ordering::Relaxed);
 		};
-		let _handle = thread::spawn(routine);
+		let handle = thread::spawn(routine);
 		println!("Spawning new thread");
 
 		ReadThread {
-			flags: flags2.clone(),
+			flags: flags2,
 			data: arc2,
-			//handle: handle,
+			handle: handle,
 		}
 	}
 	/*
-	pub fn join(self) {
-		self.handle.join().unwrap();
+	pub fn join(&self) {
+		//self.handle.join();
 	}
 	*/
-	pub fn setup_write(&self, out : Arc<RwLock<OutputDevice>>, func : String, args : String) {
+	pub fn setup_write(&self, out : &Arc<RwLock<OutputDevice>>, func : String, args : String) {
 		self.data.write().unwrap().setup_write(out,func,args);
 	}
 }

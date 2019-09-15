@@ -3,16 +3,20 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::config::{Config,ConfigLine};
 use crate::r#macro::MacroData;
 use crate::devices::{ReadThreadMap,OutputDeviceMap};
+use std::time::Duration;
+use std::thread;
 
 #[derive(Debug)]
 pub struct Flags {
 	pub hup : Arc<AtomicBool>,
+	pub int : Arc<AtomicBool>,
 	pub run : Arc<AtomicBool>,
 }
 impl Flags {
 	pub fn new() -> Flags {
 		Flags {
 			hup : Flags::newflag(false),
+			int : Flags::newflag(false),
 			run : Flags::newflag(false),
 		}
 	}
@@ -76,9 +80,9 @@ impl App {
 		if key == "server" || key == "macro" { println!("TODO implement {} support", key); return; }
 		if line.out == "server" || line.out == "macro" { println!("TODO implement {} support", line.out); return; }
 		println!();
-		let read = read_threads.by_name(&line.r#in);
-		let out = output_devices.by_name(&line.out);
-		read.setup_write( out.clone(), line.func.to_string(), line.args.to_string());
+		let read = &read_threads.by_name(&line.r#in);
+		let out = &output_devices.by_name(&line.out);
+		read.setup_write( &out, line.func.to_string(), line.args.to_string());
 	}
 
 	pub fn ready(&mut self) {
@@ -89,20 +93,39 @@ impl App {
 	}
 
 	pub fn join(&mut self) {
-		println!("joining");
-		loop {
+		println!("App thread signal yield loop");
+		'signal: loop {
 			if self.flags.hup.swap(false, Ordering::Relaxed) {
 				println!("Got SIGHUP");
 				for (_name,thread) in self.read_threads.iter_mut() {
 					thread.flags.hup.store(true, Ordering::Relaxed);
 				}
 			}
+			if self.flags.int.swap(false, Ordering::Relaxed) {
+				println!("Got SIGINT");
+				for (_name,thread) in self.read_threads.iter_mut() {
+					thread.flags.int.store(true, Ordering::Relaxed);
+				}
+				break 'signal;
+			}
+			std::thread::yield_now();
 		}
-		/*
-		for (_name,thread) in self.read_threads {
-			thread.join();
+		
+		let mut done = false;
+		while ! done {
+			done = true;
+			for (_name,thread) in self.read_threads.iter() {
+				if thread.flags.int.load(Ordering::Relaxed) {
+					done = false;
+					//println!("{} not done", _name);
+					std::thread::yield_now();
+					thread::sleep(Duration::from_millis(500));
+					break;
+				}
+			}
 		}
-		*/
+		//println!("Finishing up");
+		//self.read_threads.join_all();
 	}
 
 	/*
@@ -113,4 +136,9 @@ impl App {
 		});
 	}
 	*/
+}
+impl Drop for App {
+	fn drop(&mut self) {
+		println!("Bye!");
+	}
 }

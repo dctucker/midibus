@@ -4,8 +4,8 @@ use crate::filters::CallbackFn;
 use crate::output::OutputDevice;
 use crate::filters;
 
-pub struct CallbackData {
-	pub output_device : Arc<RwLock<OutputDevice>>,
+pub struct CallbackData<'a> {
+	pub output_device : &'a mut OutputDevice,
 	pub midi_in : String,
 }
 
@@ -24,7 +24,7 @@ impl fmt::Debug for WriteData {
 }
 
 impl WriteData {
-	pub fn new( out : Arc<RwLock<OutputDevice>>, func : String, args : String ) -> WriteData {
+	pub fn new( out : &Arc<RwLock<OutputDevice>>, func : String, args : String ) -> WriteData {
 		WriteData {
 			output_device: out.clone(),
 			func_name: func.clone(),
@@ -38,7 +38,7 @@ impl WriteData {
 	}
 	pub fn call(&mut self, buf : &Vec<u8>) {
 		let mut data = CallbackData {
-			output_device: self.output_device.clone(),
+			output_device: &mut self.output_device.write().unwrap(),
 			midi_in: self.midi_in.to_string(),
 		};
 		self.callback.callback(&mut data, buf);

@@ -17,18 +17,17 @@ impl CallbackFn for Status {
 	fn callback(&self, data : &mut CallbackData, buf : &Vec<u8>) -> usize {
 		let mut out_buf = [0u8 ; BUFSIZE];
 
-		let mut output_device = data.output_device.write().unwrap();
 		let mut a = 0;
 		let out_status = &self.out_status;
 
 		for c in buf {
-			let cur_state = output_device.scan_status(*c);
+			let cur_state = data.output_device.scan_status(*c);
 			let i : usize = ((0x80 | cur_state) - 0x80).try_into().unwrap();
 			if out_status[i] == cur_state {
 				out_buf[ a ] = *c;
 				a += 1;
 			}
 		}
-		output_device.send_buffer(&out_buf[0..a].to_vec()).unwrap()
+		data.output_device.send_buffer(&out_buf[0..a].to_vec()).unwrap()
 	}
 }
