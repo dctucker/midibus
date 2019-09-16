@@ -1,5 +1,4 @@
 
-#[derive(Debug)]
 pub struct Funnel { channel : u8 }
 impl Funnel {
 	pub fn new( args : String ) -> Funnel {
@@ -7,9 +6,8 @@ impl Funnel {
 	}
 }
 impl CallbackFn for Funnel {
-	fn callback(&self, data : &mut CallbackData, buf : &Vec<u8>) -> usize {
+	fn callback(&self, data : &mut CallbackData, buf : &[u8]) -> usize {
 		let mask = MASK_ALL;
-		let mut out_buf = [0u8 ; BUFSIZE];
 		let mut current_mask = 0;
 
 		if data.output_device.midi_in_exclusive == data.midi_in {
@@ -30,16 +28,16 @@ impl CallbackFn for Funnel {
 				current_mask = MASK_SYSEX;
 			} else if *c >= 0x80 {
 				current_mask = 2 << (*c & 0x0f);
-				out_buf[a] = *c & 0xf0 | self.channel;
+				data.buffer[a] = *c & 0xf0 | self.channel;
 				a += 1;
 				continue;
 			}
 
 			if mask & current_mask != 0 {
-				out_buf[a] = *c;
+				data.buffer[a] = *c;
 				a += 1;
 			}
 		}
-		data.output_device.send_buffer(&out_buf[0..a].to_vec()).unwrap()
+		data.output_device.send_buffer(&data.buffer[0..a]).unwrap()
 	}
 }

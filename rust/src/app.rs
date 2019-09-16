@@ -108,7 +108,7 @@ impl App {
 				}
 				break 'signal;
 			}
-			std::thread::yield_now();
+			thread::sleep(Duration::from_millis(500));
 		}
 		
 		let mut done = false;

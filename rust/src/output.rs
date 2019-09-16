@@ -45,20 +45,23 @@ impl OutputDevice {
 			},
 		}
 	}
-	pub fn send_buffer(&mut self, buf : &Vec<u8> ) -> Result<usize, String> {
+	pub fn send_buffer(&mut self, buf : &[u8] ) -> Result<usize, String> {
+		if buf.len() == 0 {
+			return Ok(0)
+		}
 		let midi = match &self.midi {
 			Some(mutex) => match mutex.lock() {
 				Ok(m) => m,
 				Err(_) => return Err(format!("Could not lock {}", self.port_name)),
 			},
 			None => {
-				println!("Device not connected {}", self.port_name);
+				//println!("Device not connected {}", self.port_name);
 				return Ok(0)
 			},
 		};
 		match midi.io().write(buf) {
 			Ok(n) => {
-				self.handle_write(buf.to_vec());
+				self.handle_write(buf);
 				let mut status : u8 = self.status;
 				for c in buf.iter() {
 					if *c >= 0x80 {
@@ -71,7 +74,7 @@ impl OutputDevice {
 			Err(_) => Err(format!("Error writing to {}", self.port_name)),
 		}
 	}
-	fn handle_write(&self, buf : Vec<u8>) {
+	fn handle_write(&self, buf : &[u8]) {
 		print!("O");
 		for x in buf.iter(){ print!(" 0x{:02x}", x); }
 		println!(" {}", self.port_name);

@@ -19,7 +19,7 @@ fn parse_hex(arg : &str) -> u8 {
 #[derive(Debug)]
 pub struct Void { }
 impl Void { pub fn new( _args : String ) -> Void { Void { } } }
-impl CallbackFn for Void { fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize { 0 } }
+impl CallbackFn for Void { fn callback(&self, _data : &mut CallbackData, _buf : &[u8]) -> usize { 0 } }
 
 include!("channel.rs");
 include!("funnel.rs");
@@ -27,7 +27,6 @@ include!("ccmap.rs");
 include!("status.rs");
 
 #[enum_dispatch]
-#[derive(Debug)]
 pub enum Callback {
 	Void,
 	Channel,
@@ -38,7 +37,7 @@ pub enum Callback {
 
 #[enum_dispatch(Callback)]
 pub trait CallbackFn {
-	fn callback(&self, _data : &mut CallbackData, _buf : &Vec<u8>) -> usize;
+	fn callback(&self, _data : &mut CallbackData, _buf : &[u8]) -> usize;
 	fn add_args( &mut self, _args : String ) {}
 }
 
@@ -51,5 +50,10 @@ impl Callback {
 			"status"  =>  Status::new(args).into(),
 			_         =>    Void::new(args).into(),
 		}
+	}
+}
+impl std::fmt::Debug for Callback {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "Callback {{ }}")
 	}
 }
