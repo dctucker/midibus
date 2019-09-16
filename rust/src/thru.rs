@@ -51,12 +51,12 @@ impl ReadData {
 		self.outs.push( WriteData::new(&out, func, args) );
 
 	}
-	fn handle_read(&mut self, buf : Vec<u8>) {
+	fn handle_read(&mut self, buf : &[u8]) {
 		print!("I");
 		for x in buf.iter(){ print!(" 0x{:02x}", x); }
 		println!(" {}", self.port_name);
 		for w in self.outs.iter_mut() {
-			w.call(&buf);
+			w.call(buf);
 		}
 	}
 }
@@ -73,21 +73,49 @@ impl fmt::Debug for ReadThread {
 }
 impl ReadThread {
 	fn read_loop( flags : &Arc<Flags>, arc : &Arc<RwLock<ReadData>>, midi : &Rawmidi ) {
+		/*
+		// calculate BPM
+		let mut clock = std::time::Instant::now();
+		let mut clock1;
+		const BPM_SIZE : usize = 32;
+		let mut bpms = vec![ 0.0f64 ; BPM_SIZE];
+		let mut bpm_offset : usize = 0;
+		*/
+		let mut buf = [0u8; BUFSIZE];
 		'read: loop {
 			use alsa::PollDescriptors;
-			let mut buf : Vec<u8> = vec![0; BUFSIZE];
 			while ! flags.run.load(Ordering::Relaxed) {
 				if flags.hup.swap(false, Ordering::Relaxed) { break 'read; }
 				thread::sleep(Duration::from_millis(500));
 			}
-			thread::yield_now();
+			//thread::yield_now();
 			if flags.int.load(Ordering::Relaxed) { break 'read; }
 
 			let res = alsa::poll::poll(&mut midi.get().unwrap(), 500).unwrap();
+			//clock1 = std::time::Instant::now();
 			if res == 0 { continue; }
+
 			match midi.io().read(&mut buf) {
 				Ok(n) => {
-					arc.write().unwrap().handle_read( buf[0..n].to_vec() );
+					/*
+					// calculate BPM
+					for c in &buf[0..n] {
+						if *c == 0xf8 {
+							let bpm = 2_500_000.0f64 / (clock1.duration_since(clock).as_micros() as f64);
+							bpms[ bpm_offset ] = bpm;
+							bpm_offset = (bpm_offset + 1) % BPM_SIZE;
+							let mut sum : f64 = 0.0;
+							for b in &bpms {
+								sum += b;
+							}
+							sum /= BPM_SIZE as f64;
+							println!("Tempo = {:?} BPM", sum);
+							clock = clock1;
+							break;
+						}
+					}
+					*/
+					arc.write().unwrap().handle_read( &buf[0..n] );
 				},
 				Err(_) => {
 					println!("Error reading");

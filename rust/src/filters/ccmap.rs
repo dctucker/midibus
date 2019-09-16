@@ -1,9 +1,8 @@
 
-#[derive(Debug)]
-pub struct CCMap { channel : u8, out_cc : Vec<u8> }
+pub struct CCMap { channel : u8, out_cc : [u8 ; 0xff] }
 impl CCMap {
 	pub fn new( args : String ) -> CCMap {
-		let out_cc = vec![ 0 ; 0xff ];
+		let out_cc = [ 0u8 ; 0xff ];
 		let channel = args.split(",").next().unwrap();
 
 		let mut ccmap = CCMap {
@@ -26,9 +25,8 @@ impl CallbackFn for CCMap {
 			self.out_cc[in_cc]
 		);
 	}
-	fn callback(&self, data : &mut CallbackData, buf : &Vec<u8>) -> usize {
+	fn callback(&self, data : &mut CallbackData, buf : &[u8]) -> usize {
 		let exp_state : u8 = 0xb0 + self.channel;
-		let mut out_buf = [0u8 ; BUFSIZE];
 		let mut cc : u8 = 0xff;
 		let mut val : u8 = 0xff;
 
@@ -47,9 +45,9 @@ impl CallbackFn for CCMap {
 				} else if val == 0xff {
 					if cc < 0x80 {
 						val = *c;
-						out_buf[a] = exp_state; a += 1;
-						out_buf[a] = cc; a += 1;
-						out_buf[a] = val; a += 1;
+						data.buffer[a] = exp_state; a += 1;
+						data.buffer[a] = cc; a += 1;
+						data.buffer[a] = val; a += 1;
 					}
 					val = 0xff;
 					cc = 0xff;
@@ -59,6 +57,6 @@ impl CallbackFn for CCMap {
 				val = 0xff;
 			}
 		}
-		data.output_device.send_buffer(&out_buf[0..a].to_vec()).unwrap()
+		data.output_device.send_buffer(&data.buffer[0..a]).unwrap()
 	}
 }
