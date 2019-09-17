@@ -82,16 +82,29 @@ impl ReadThread {
 		let mut bpm_offset : usize = 0;
 		*/
 		let mut buf = [0u8; BUFSIZE];
+
+		let mut data = match arc.write() {
+			Ok(d) => d,
+			Err(_) => {
+				println!("Error locking read object");
+				return;
+			},
+		};
 		'read: loop {
 			use alsa::PollDescriptors;
 			while ! flags.run.load(Ordering::Relaxed) {
 				if flags.hup.swap(false, Ordering::Relaxed) { break 'read; }
 				thread::sleep(Duration::from_millis(500));
 			}
-			//thread::yield_now();
 			if flags.int.load(Ordering::Relaxed) { break 'read; }
 
-			let res = alsa::poll::poll(&mut midi.get().unwrap(), 500).unwrap();
+			let res = match alsa::poll::poll(&mut midi.get().unwrap(), 500) {
+				Ok(n) => n,
+				Err(_) => {
+					println!("Error polling");
+					break 'read;
+				},
+			};
 			//clock1 = std::time::Instant::now();
 			if res == 0 { continue; }
 
@@ -115,7 +128,7 @@ impl ReadThread {
 						}
 					}
 					*/
-					arc.write().unwrap().handle_read( &buf[0..n] );
+					data.handle_read( &buf[0..n] );
 				},
 				Err(_) => {
 					println!("Error reading");

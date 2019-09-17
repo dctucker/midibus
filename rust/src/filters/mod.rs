@@ -1,7 +1,6 @@
 use enum_dispatch::enum_dispatch;
 //use crate::output::OutputDevice;
 use crate::write::CallbackData;
-use crate::thru::BUFSIZE;
 
 const MASK_SYSEX : u32 = 1 << 20;
 const MASK_RT    : u32 = 1 << 21;
