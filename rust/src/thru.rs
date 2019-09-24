@@ -59,6 +59,33 @@ impl ReadData {
 			w.call(buf);
 		}
 	}
+	/*
+	fn calculate_bpm() {
+		// calculate BPM
+		let mut clock = std::time::Instant::now();
+		let mut clock1;
+		const BPM_SIZE : usize = 32;
+		let mut bpms = vec![ 0.0f64 ; BPM_SIZE];
+		let mut bpm_offset : usize = 0;
+
+		// calculate BPM
+		for c in &buf[0..n] {
+			if *c == 0xf8 {
+				let bpm = 2_500_000.0f64 / (clock1.duration_since(clock).as_micros() as f64);
+				bpms[ bpm_offset ] = bpm;
+				bpm_offset = (bpm_offset + 1) % BPM_SIZE;
+				let mut sum : f64 = 0.0;
+				for b in &bpms {
+					sum += b;
+				}
+				sum /= BPM_SIZE as f64;
+				println!("Tempo = {:?} BPM", sum);
+				clock = clock1;
+				break;
+			}
+		}
+	}
+	*/
 }
 
 pub struct ReadThread {
@@ -73,22 +100,11 @@ impl fmt::Debug for ReadThread {
 }
 impl ReadThread {
 	fn read_loop( flags : &Arc<Flags>, arc : &Arc<RwLock<ReadData>>, midi : &Rawmidi ) {
-		/*
-		// calculate BPM
-		let mut clock = std::time::Instant::now();
-		let mut clock1;
-		const BPM_SIZE : usize = 32;
-		let mut bpms = vec![ 0.0f64 ; BPM_SIZE];
-		let mut bpm_offset : usize = 0;
-		*/
 		let mut buf = [0u8; BUFSIZE];
 
 		let mut data = match arc.write() {
 			Ok(d) => d,
-			Err(_) => {
-				println!("Error locking read object");
-				return;
-			},
+			Err(_) => { println!("Error locking read object"); return; },
 		};
 		'read: loop {
 			use alsa::PollDescriptors;
@@ -100,40 +116,16 @@ impl ReadThread {
 
 			let res = match alsa::poll::poll(&mut midi.get().unwrap(), 500) {
 				Ok(n) => n,
-				Err(_) => {
-					println!("Error polling");
-					break 'read;
-				},
+				Err(_) => { println!("Error polling"); break 'read; },
 			};
 			//clock1 = std::time::Instant::now();
 			if res == 0 { continue; }
 
 			match midi.io().read(&mut buf) {
 				Ok(n) => {
-					/*
-					// calculate BPM
-					for c in &buf[0..n] {
-						if *c == 0xf8 {
-							let bpm = 2_500_000.0f64 / (clock1.duration_since(clock).as_micros() as f64);
-							bpms[ bpm_offset ] = bpm;
-							bpm_offset = (bpm_offset + 1) % BPM_SIZE;
-							let mut sum : f64 = 0.0;
-							for b in &bpms {
-								sum += b;
-							}
-							sum /= BPM_SIZE as f64;
-							println!("Tempo = {:?} BPM", sum);
-							clock = clock1;
-							break;
-						}
-					}
-					*/
 					data.handle_read( &buf[0..n] );
 				},
-				Err(_) => {
-					println!("Error reading");
-					break 'read;
-				},
+				Err(_) => { println!("Error reading"); break 'read; },
 			}
 		}
 	}

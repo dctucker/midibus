@@ -1,4 +1,5 @@
 use std::sync::{Arc,RwLock};
+use std::sync::atomic::{Ordering};
 use crate::thru::ReadThread;
 use crate::output::OutputDevice;
 use std::collections::HashMap;
@@ -37,6 +38,32 @@ impl Create<ReadThread> for ReadThreadMap {
 		ReadThread::new(String::from(key))
 	}
 }
+impl ReadThreadMap {
+	pub fn hup(&mut self) {
+		for (_name,thread) in self.iter_mut() {
+			thread.flags.hup.store(true, Ordering::Relaxed);
+		}
+	}
+	pub fn int(&mut self) {
+		for (_name,thread) in self.iter_mut() {
+			thread.flags.int.store(true, Ordering::Relaxed);
+		}
+	}
+	pub fn run(&mut self) {
+		for (_name,thread) in self.iter_mut() {
+			thread.flags.run.store(true, Ordering::Relaxed);
+		}
+	}
+
+	pub fn int_cleared(&self) -> bool {
+		for (_name,thread) in self.iter() {
+			if thread.flags.int.load(Ordering::Relaxed) {
+				return false;
+			}
+		}
+		return true;
+	}
+}
 
 /*
 impl ReadThreadMap {
@@ -52,5 +79,15 @@ pub type OutputDeviceMap = DeviceMap<Arc<RwLock<OutputDevice>>>;
 impl Create<Arc<RwLock<OutputDevice>>> for OutputDeviceMap {
 	fn create( key : &String ) -> Arc<RwLock<OutputDevice>> {
 		Arc::new( RwLock::new( OutputDevice::new(key.clone() ) ) )
+	}
+}
+impl OutputDeviceMap {
+	pub fn connect(&mut self) {
+		for (_name,output) in self.iter_mut() {
+			match output.write() {
+				Ok(mut o) => { o.connect() },
+				Err(_) => { println!("Error asking output {} to reconnect", _name); },
+			};
+		}
 	}
 }
