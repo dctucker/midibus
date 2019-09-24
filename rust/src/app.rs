@@ -87,9 +87,7 @@ impl App {
 
 	pub fn ready(&mut self) {
 		self.flags.run.store(true, Ordering::Relaxed);
-		for (_name,thread) in self.read_threads.iter_mut() {
-			thread.flags.run.store(true, Ordering::Relaxed);
-		}
+		self.read_threads.run();
 	}
 
 	pub fn join(&mut self) {
@@ -97,32 +95,20 @@ impl App {
 		'signal: loop {
 			if self.flags.hup.swap(false, Ordering::Relaxed) {
 				println!("Got SIGHUP");
-				for (_name,thread) in self.read_threads.iter_mut() {
-					thread.flags.hup.store(true, Ordering::Relaxed);
-				}
+				self.read_threads.hup();
+				self.output_devices.connect();
 			}
 			if self.flags.int.swap(false, Ordering::Relaxed) {
 				println!("Got SIGINT");
-				for (_name,thread) in self.read_threads.iter_mut() {
-					thread.flags.int.store(true, Ordering::Relaxed);
-				}
+				self.read_threads.int();
 				break 'signal;
 			}
 			thread::sleep(Duration::from_millis(500));
 		}
 		
-		let mut done = false;
-		while ! done {
-			done = true;
-			for (_name,thread) in self.read_threads.iter() {
-				if thread.flags.int.load(Ordering::Relaxed) {
-					done = false;
-					//println!("{} not done", _name);
-					std::thread::yield_now();
-					thread::sleep(Duration::from_millis(500));
-					break;
-				}
-			}
+		while ! self.read_threads.int_cleared() {
+			std::thread::yield_now();
+			thread::sleep(Duration::from_millis(500));
 		}
 		//println!("Finishing up");
 		//self.read_threads.join_all();
