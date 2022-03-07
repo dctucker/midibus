@@ -19,7 +19,10 @@ FILTER_SETUP( channel )
 				channel_mask |= MASK_ALL;
 		}
 		else
+		{
 			channel_mask |= 1 << a;
+			printf(" %d ", a);
+		}
 
 		pt = strtok(NULL, ",");
 	}
@@ -54,6 +57,10 @@ FILTER_CALLBACK( channel )
 
 		if( mask & current_mask )
 			out_buf[a++] = buf[b];
+#ifdef DEBUG_MASK
+		else
+			printf("! %s 0x%02X current_mask=0x%08X\n", data->output_device->port_name, buf[b], current_mask);
+#endif
 	}
 	return write_buffer( port, out_buf, a );
 }
