@@ -1,6 +1,7 @@
 // hw:JUNODS	hw:II	notes	3
 
 #include "main.h"
+#include "list.h"
 
 void configure_midi_connection(const char *in_name, const char *out_name, const char *func_name, const char *args_name)
 {
@@ -82,6 +83,7 @@ void load_config_file()
 
 void manage_inputs()
 {
+	load_device_list();
 	int tries = 0;
 	int had_errors;
 	do

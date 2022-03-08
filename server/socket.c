@@ -117,6 +117,8 @@ void *socket_thread()
 	}
 	*/
 
+	setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+
 	if( bind(master_socket, (struct sockaddr*) &address, sizeof(address)) < 0 )
 	{
 		perror("E bind error");

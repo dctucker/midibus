@@ -1,4 +1,5 @@
 #include "app.h"
+#include "list.h"
 
 extern void hear_macro( struct macro_listener_t *, const char *, unsigned char *, size_t );
 
@@ -50,12 +51,19 @@ int setup_midi_device(struct read_thread_data *data)
 	int err;
 	snd_rawmidi_t *midi_out;
 
-	if ((err = snd_rawmidi_open(&data->midi, &midi_out, data->port_name, SND_RAWMIDI_APPEND | SND_RAWMIDI_NONBLOCK)) < 0) {
+	const char *dev = find_device( data->port_name + 3 );
+	if( strlen( dev ) == 0 )
+	{
+		data->midi = NULL;
+		return -2;
+	}
+
+	if ((err = snd_rawmidi_open(&data->midi, &midi_out, dev, SND_RAWMIDI_APPEND | SND_RAWMIDI_NONBLOCK)) < 0) {
 		//error("E %d %s \"%s\"", err, data->port_name, snd_strerror(err));
 		data->midi = NULL;
 		return err;
 	}
-	printf("S %s\n", data->port_name);
+	printf("S %s = %s\n", data->port_name, dev);
 	int d = 0;
 	for(; d < app->n_output_devices; ++d )
 		if( strcmp( app->output_devices[d].port_name, data->port_name ) == 0 )

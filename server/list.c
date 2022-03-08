@@ -13,7 +13,7 @@ static void error(const char *format, ...)
 	putc('\n', stderr);
 }
 
-static void load_device_list(void)
+void load_device_list(void)
 {
 	int card, err;
 	n_maps = 0;
@@ -143,15 +143,16 @@ const char *find_device(const char *name)
 	}
 	return "";
 }
-/*
+
+#ifdef LIST_MAIN
 void main( int argc, char **argv )
 {
 	load_device_list();
-	//print_device_map();
 
 	if( argc <= 1 )
 	{
 		error("usage: list <name> # search for hw by name");
+		print_device_map();
 		exit(1);
 	}
 	const char *name = argv[1];
@@ -163,4 +164,4 @@ void main( int argc, char **argv )
 	}
 	exit(ENODEV);
 }
-*/
+#endif

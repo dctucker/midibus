@@ -23,7 +23,7 @@ midi-server: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 list: $(OBJ)
-	$(CC) -o list list.c $(CFLAGS) $(LIBS)
+	$(CC) -DLIST_MAIN -o list list.c $(CFLAGS) $(LIBS)
 
 .phony: clean
 

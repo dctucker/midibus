@@ -7,6 +7,6 @@ struct device_map_t {
 	char name[64];
 };
 
-static void load_device_list(void);
+void load_device_list(void);
 void print_device_map();
 const char *find_device(const char *);
