@@ -15,11 +15,15 @@ OBJ = $(patsubst %.c,%.o,$(wildcard filters/*.c)) $(patsubst %.c,%.o,$(wildcard 
 $(ODIR)/%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+
 ../pygame/app.pyc: common.h app.h write.h thru.h macro.h
 	cd ../pygame && python server.py && python -m compileall app.py && rm app.py
 
 midi-server: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+list: $(OBJ)
+	$(CC) -o list list.c $(CFLAGS) $(LIBS)
 
 .phony: clean
 

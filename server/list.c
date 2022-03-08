@@ -143,7 +143,6 @@ const char *find_device(const char *name)
 	}
 	return "";
 }
-
 /*
 void main( int argc, char **argv )
 {
