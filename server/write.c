@@ -62,14 +62,17 @@ struct write_callback_t *setup_write_func( struct write_data *data, const char *
 	{
 		callback = &( data->callbacks[c] );
 		if( callback->func == func )
+		{
+			printf(" callback #%d", c);
 			return callback;
+		}
 	}
 	for( int c = 0; c < MAX_CALLBACKS; c++ )
 	{
 		callback = &( data->callbacks[c] );
 		if( callback->func == NULL )
 		{
-			//printf("W %s %s new callback\n", data->port_name, func_name);
+			printf(" %s new callback\n", func_name);
 			memset( callback, 0, sizeof( struct write_callback_t ) );
 			callback->func = func;
 			return callback;

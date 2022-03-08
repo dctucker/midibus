@@ -23,7 +23,7 @@ JUNO from the computer.
 
 ## What does my setup look like?
 
-The concept of a "master keyboard" has stuck with me, and for this purpose I
+The concept of a "main keyboard" has stuck with me, and for this purpose I
 currently use the Roland JUNO-DS 88. Connected to my Raspberry Pi running this
 software, I have a Synthstrom Audible Deluge for
 sequencing and sound design, a Moog Little Phatty Stage II for warm analog synth
